@@ -7,8 +7,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 from app.main import app
 from app.db.session import SessionLocal
 from app.models.entities import User
+from app.core.config import settings
 from app.services.tender_service import extract_requirements_from_text
 from app.adapters.documents.realistic_generator import generate_realistic_document
+from scripts.seed import seed_database
 import pymupdf
 from io import BytesIO
 from uuid import uuid4
@@ -41,6 +43,16 @@ def test_auth_flow():
     me_res = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert me_res.status_code == 200
     assert me_res.json()["username"] == "officer"
+
+
+def test_documented_demo_accounts_can_sign_in_after_sync(monkeypatch):
+    # This mirrors a Render startup against the already-seeded database.
+    monkeypatch.setattr(settings, "reset_demo_passwords", True)
+    seed_database()
+    for username in ("officer", "verifier", "auditor", "admin"):
+        res = client.post("/api/v1/auth/login", json={"username": username, "password": "BidShield@123"})
+        assert res.status_code == 200
+        assert res.json()["user"]["username"] == username
 
 def test_tenders_and_requirements():
     res = client.post("/api/v1/auth/login", json={"username": "officer", "password": "BidShield@123"})

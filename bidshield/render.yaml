@@ -15,7 +15,13 @@ services:
       - key: BIDSHIELD_JWT_SECRET
         generateValue: true
       - key: BIDSHIELD_INITIAL_USER_PASSWORD
-        generateValue: true
+        # This is an explicitly labelled public evaluation environment. It must
+        # match the credentials documented on the login screen and in the README.
+        value: BidShield@123
+      - key: BIDSHIELD_RESET_DEMO_PASSWORDS
+        # Repairs the existing first deployment, which was seeded with a
+        # generated password, without deleting procurement demo data.
+        value: "true"
       - key: BIDSHIELD_DEMO_MODE
         value: "false"
       - key: BIDSHIELD_STORAGE_DIR
@@ -32,7 +38,7 @@ services:
     startCommand: npm start
     envVars:
       - key: NEXT_PUBLIC_DEMO_MODE
-        value: "false"
+        value: "true"
       - key: NEXT_PUBLIC_API_URL
         fromService:
           name: bidshield-backend

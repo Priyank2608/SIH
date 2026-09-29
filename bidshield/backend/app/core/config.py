@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_minutes: int = 120
     initial_user_password: str = ""
+    reset_demo_passwords: bool = False
     
     demo_mode: bool = True
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"

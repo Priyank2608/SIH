@@ -40,10 +40,20 @@ export async function api(endpoint: string, options: RequestInit = {}) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      headers,
+    });
+  } catch (error) {
+    // Render's free services can take a short time to wake up. Do not expose
+    // the browser's opaque "Failed to fetch" message to evaluation users.
+    if (error instanceof TypeError) {
+      throw new Error('Unable to reach BidShield right now. The service may be starting; wait a moment and try again.');
+    }
+    throw error;
+  }
 
   if (res.status === 401) {
     clearToken();

@@ -29,6 +29,33 @@ from app.services.audit_service import log_audit_event
 
 from app.adapters.documents.realistic_generator import generate_realistic_document
 
+DEMO_USERS = (
+    ("officer", "officer@bidshield.gov.in", "Rajesh Verma (Procurement Officer)", "PROCUREMENT_OFFICER"),
+    ("verifier", "verifier@bidshield.gov.in", "Anita Iyer (Verification Officer)", "VERIFICATION_OFFICER"),
+    ("auditor", "auditor@bidshield.gov.in", "Pooja Sharma (Vigilance Auditor)", "AUDITOR"),
+    ("admin", "admin@bidshield.gov.in", "Sanjay Kumar (System Administrator)", "SUPER_ADMIN"),
+)
+
+
+def sync_demo_users(db, tenant: Tenant) -> None:
+    """Make the documented evaluation accounts available without touching demo data."""
+    password = settings.initial_user_password or "BidShield@123"
+    for username, email, full_name, role in DEMO_USERS:
+        user = db.query(User).filter(User.username == username).first()
+        if user:
+            user.hashed_password = hash_password(password)
+            user.is_active = True
+            continue
+        db.add(User(
+            tenant_id=tenant.id,
+            username=username,
+            email=email,
+            hashed_password=hash_password(password),
+            full_name=full_name,
+            role=role,
+        ))
+    db.commit()
+
 def generate_pdf_document(
     title: str,
     doc_type: str,
@@ -53,8 +80,12 @@ def seed_database(reset: bool = False):
     if reset:
         Base.metadata.drop_all(bind=engine)
         Base.metadata.create_all(bind=engine)
-    elif db.query(Tenant).first():
-        print("Database already contains a tenant; preserving existing data. Use --reset to rebuild the synthetic demo database.")
+    elif existing_tenant := db.query(Tenant).first():
+        if settings.reset_demo_passwords:
+            sync_demo_users(db, existing_tenant)
+            print("Existing demo data preserved; documented evaluation accounts synchronized.")
+        else:
+            print("Database already contains a tenant; preserving existing data. Use --reset to rebuild the synthetic demo database.")
         db.close()
         return
 
@@ -65,33 +96,9 @@ def seed_database(reset: bool = False):
     db.commit()
     db.refresh(tenant)
 
-    officer_pwd = hash_password(settings.initial_user_password or "BidShield@123")
-    officer = User(
-        tenant_id=tenant.id,
-        username="officer",
-        email="officer@bidshield.gov.in",
-        hashed_password=officer_pwd,
-        full_name="Rajesh Verma (Procurement Officer)",
-        role="PROCUREMENT_OFFICER"
-    )
-    admin = User(
-        tenant_id=tenant.id,
-        username="admin",
-        email="admin@bidshield.gov.in",
-        hashed_password=officer_pwd,
-        full_name="Sanjay Kumar (System Administrator)",
-        role="SUPER_ADMIN"
-    )
-    auditor = User(
-        tenant_id=tenant.id,
-        username="auditor",
-        email="auditor@bidshield.gov.in",
-        hashed_password=officer_pwd,
-        full_name="Pooja Sharma (Vigilance Auditor)",
-        role="AUDITOR"
-    )
-    db.add_all([officer, admin, auditor])
-    db.commit()
+    sync_demo_users(db, tenant)
+    officer = db.query(User).filter(User.username == "officer").one()
+    admin = db.query(User).filter(User.username == "admin").one()
 
     # 2. Five Synthetic GeM Tenders
     print("Creating 5 synthetic GeM tenders...")
@@ -702,7 +709,7 @@ def seed_database(reset: bool = False):
     print(f"Total Tenders: {len(tenders)}")
     print(f"Total Bidders: {len(bidders)}")
     print(f"Total Documents: {doc_counter}")
-    print("Seeded accounts: officer, auditor, admin")
+    print("Seeded accounts: officer, verifier, auditor, admin")
     db.close()
 
 if __name__ == "__main__":

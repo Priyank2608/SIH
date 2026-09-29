@@ -62,6 +62,7 @@ Immutable Audit Trail & Dual ReportLab PDF Generation
 | Role | Username | Password |
 |---|---|---|
 | **Procurement Officer** | `officer` | `BidShield@123` |
+| **Verification Officer** | `verifier` | `BidShield@123` |
 | **Vigilance Auditor** | `auditor` | `BidShield@123` |
 | **System Administrator** | `admin` | `BidShield@123` |
 
