@@ -1,0 +1,7 @@
+bidshield/frontend/node_modules/
+bidshield/frontend/.next/
+bidshield/backend/storage/*.db
+bidshield/storage/
+__pycache__/
+.pytest_cache/
+.env
