@@ -1,0 +1,168 @@
+{
+  "pages": {
+    "tenders": {
+      "url": "http://localhost:3000/tenders",
+      "ready": true,
+      "pageTitle": "Tenders Register",
+      "typography": {
+        "pageTitle": {
+          "font": "IBM Plex Sans",
+          "size": "28px",
+          "weight": "700",
+          "spacing": "-0.616px"
+        },
+        "sectionTitle": null,
+        "th": {
+          "font": "IBM Plex Sans",
+          "size": "10.5px",
+          "weight": "700",
+          "spacing": "0.735px"
+        },
+        "td": {
+          "font": "IBM Plex Sans",
+          "size": "13px",
+          "weight": "400",
+          "spacing": "normal"
+        },
+        "btn": {
+          "font": "IBM Plex Sans",
+          "size": "12.5px",
+          "weight": "600",
+          "spacing": "0.125px"
+        }
+      },
+      "texture": {
+        "bodyGrain": true,
+        "bodyAttachment": "fixed, fixed"
+      },
+      "tableRows": 37,
+      "filterPills": [
+        "All",
+        "ACTIVE"
+      ],
+      "screenshots": [
+        "04-tenders.png",
+        "04-tenders-full.png"
+      ]
+    },
+    "verification": {
+      "url": "http://localhost:3000/verification",
+      "ready": true,
+      "pageTitle": "Document Verification Center",
+      "typography": {
+        "pageTitle": {
+          "font": "IBM Plex Sans",
+          "size": "28px",
+          "weight": "700",
+          "spacing": "-0.616px"
+        },
+        "sectionTitle": {
+          "font": "IBM Plex Sans",
+          "size": "11px",
+          "weight": "700",
+          "spacing": "0.66px"
+        },
+        "th": {
+          "font": "IBM Plex Sans",
+          "size": "10.5px",
+          "weight": "700",
+          "spacing": "0.735px"
+        },
+        "td": {
+          "font": "IBM Plex Sans",
+          "size": "13px",
+          "weight": "400",
+          "spacing": "normal"
+        },
+        "btn": {
+          "font": "IBM Plex Sans",
+          "size": "13px",
+          "weight": "600",
+          "spacing": "0.13px"
+        }
+      },
+      "texture": {
+        "bodyGrain": true,
+        "bodyAttachment": "fixed, fixed"
+      },
+      "tabs": [],
+      "tableRows": 65,
+      "badges": [
+        "Verified",
+        "Verified",
+        "Verified",
+        "Verified",
+        "Verified",
+        "Verified"
+      ],
+      "screenshots": [
+        "05-verification.png",
+        "05-verification-full.png"
+      ]
+    },
+    "reports": {
+      "url": "http://localhost:3000/reports",
+      "ready": true,
+      "pageTitle": "Report Archive",
+      "typography": {
+        "pageTitle": {
+          "font": "IBM Plex Sans",
+          "size": "28px",
+          "weight": "700",
+          "spacing": "-0.616px"
+        },
+        "sectionTitle": {
+          "font": "IBM Plex Sans",
+          "size": "13px",
+          "weight": "700",
+          "spacing": "0.78px"
+        },
+        "th": {
+          "font": "IBM Plex Sans",
+          "size": "10.5px",
+          "weight": "700",
+          "spacing": "0.735px"
+        },
+        "td": {
+          "font": "IBM Plex Sans",
+          "size": "13px",
+          "weight": "400",
+          "spacing": "normal"
+        },
+        "btn": {
+          "font": "IBM Plex Sans",
+          "size": "13px",
+          "weight": "600",
+          "spacing": "0.13px"
+        }
+      },
+      "texture": {
+        "bodyGrain": true,
+        "bodyAttachment": "fixed, fixed"
+      },
+      "reportRows": 0,
+      "tableRows": 92,
+      "radioCards": [
+        "Consolidated Tender EvaluationAll bidders for a tender",
+        "Individual Bidder AssessmentSingle bidder deep-dive"
+      ],
+      "buttons": [
+        "Manage Signature",
+        "Generate Report",
+        "View",
+        "PDF",
+        "View",
+        "PDF",
+        "View",
+        "PDF"
+      ],
+      "screenshots": [
+        "06-reports.png",
+        "06-reports-full.png"
+      ]
+    }
+  },
+  "consoleErrors": [],
+  "exceptions": [],
+  "pageErrors": []
+}

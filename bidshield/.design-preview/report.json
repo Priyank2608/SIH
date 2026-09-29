@@ -1,0 +1,123 @@
+{
+  "consoleErrors": [],
+  "exceptions": [],
+  "pageErrors": [],
+  "checks": {
+    "loginHeadline": {
+      "text": "ProcurementIntelligenceConsole",
+      "font": "\"IBM Plex Sans\"",
+      "size": "54px",
+      "weight": "700",
+      "spacing": "-1.728px",
+      "color": "rgb(246, 249, 252)"
+    },
+    "loginTexture": {
+      "hasGrain": true,
+      "bg": "rgb(250, 248, 244)"
+    },
+    "fontsLoaded": {
+      "plexSans": true,
+      "plexMono": true
+    },
+    "pageTitle": "Dashboard",
+    "metrics": [
+      {
+        "label": "Active Tenders",
+        "value": "37"
+      },
+      {
+        "label": "Bidders Enrolled",
+        "value": "10"
+      },
+      {
+        "label": "Verified",
+        "value": "62"
+      },
+      {
+        "label": "Flagged for Review",
+        "value": "3"
+      },
+      {
+        "label": "Compliance Rate",
+        "value": "80.3%"
+      },
+      {
+        "label": "Pending OCR",
+        "value": "1"
+      }
+    ],
+    "tableRows": 14,
+    "typography": {
+      "body": {
+        "font": "IBM Plex Sans",
+        "size": "14px",
+        "weight": "400",
+        "spacing": "normal"
+      },
+      "pageTitle": {
+        "font": "IBM Plex Sans",
+        "size": "28px",
+        "weight": "700",
+        "spacing": "-0.616px"
+      },
+      "pageDesc": {
+        "font": "IBM Plex Sans",
+        "size": "13.5px",
+        "weight": "400",
+        "spacing": "normal"
+      },
+      "sectionTitle": {
+        "font": "IBM Plex Sans",
+        "size": "13px",
+        "weight": "700",
+        "spacing": "0.78px"
+      },
+      "metricValue": {
+        "font": "IBM Plex Mono",
+        "size": "26px",
+        "weight": "500",
+        "spacing": "-0.52px"
+      },
+      "metricLabel": {
+        "font": "IBM Plex Sans",
+        "size": "10.5px",
+        "weight": "600",
+        "spacing": "0.735px"
+      },
+      "th": {
+        "font": "IBM Plex Sans",
+        "size": "10.5px",
+        "weight": "700",
+        "spacing": "0.735px"
+      },
+      "td": {
+        "font": "IBM Plex Sans",
+        "size": "13px",
+        "weight": "400",
+        "spacing": "normal"
+      },
+      "btnPrimary": {
+        "font": "IBM Plex Sans",
+        "size": "13px",
+        "weight": "600",
+        "spacing": "0.13px"
+      },
+      "brand": {
+        "font": "IBM Plex Sans",
+        "size": "15px",
+        "weight": "700",
+        "spacing": "0.6px"
+      }
+    },
+    "texture": {
+      "bodyGrain": true,
+      "bodyAttachment": "fixed, fixed",
+      "cardGrain": true
+    }
+  },
+  "screenshots": [
+    "01-login.png",
+    "02-dashboard-viewport.png",
+    "03-dashboard-full.png"
+  ]
+}
