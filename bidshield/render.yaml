@@ -15,13 +15,13 @@ services:
       - key: BIDSHIELD_JWT_SECRET
         generateValue: true
       - key: BIDSHIELD_INITIAL_USER_PASSWORD
-        sync: false
+        generateValue: true
       - key: BIDSHIELD_DEMO_MODE
         value: "false"
       - key: BIDSHIELD_STORAGE_DIR
         value: /tmp/bidshield
       - key: BIDSHIELD_CORS_ORIGINS
-        sync: false
+        value: https://bidshield-frontend.onrender.com
   - type: web
     name: bidshield-frontend
     runtime: node
