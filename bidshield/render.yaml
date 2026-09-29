@@ -4,8 +4,8 @@ services:
     runtime: docker
     region: oregon
     plan: free
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    dockerfilePath: ./bidshield/backend/Dockerfile
+    dockerContext: ./bidshield/backend
     healthCheckPath: /health
     envVars:
       - key: BIDSHIELD_DATABASE_URL
@@ -27,7 +27,7 @@ services:
     runtime: node
     region: oregon
     plan: free
-    rootDir: ./frontend
+    rootDir: ./bidshield/frontend
     buildCommand: npm ci && npm run build
     startCommand: npm start
     envVars:
