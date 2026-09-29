@@ -3,7 +3,7 @@
    Procurement review operations console · GeM bid verification
    Identity: Ledger Ink · Dossier Paper · Evidence Teal
    Typography: IBM Plex Sans · IBM Plex Mono
-   v4.0 — 2026 redesign
+   v4.1 — 2026 redesign · typography, weight & texture refinement
    ══════════════════════════════════════════════════════════════════ */
 
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,450;0,500;0,600;0,700&family=IBM+Plex+Mono:wght@400;450;500;600&display=swap');
@@ -107,10 +107,10 @@
   /* Text */
   --text-primary:   #141b26;
   --text-secondary: #2c3a4f;
-  --text-muted:     #57677e;
-  --text-faint:     #8b99ad;
-  --text-on-dark:   #eef2f8;
-  --text-on-dark-muted: #94a3ba;
+  --text-muted:     #4a5a72;
+  --text-faint:     #7d8ba0;
+  --text-on-dark:   #f2f5fa;
+  --text-on-dark-muted: #a4b2c7;
 
   /* Rules — the structural line language of the system */
   --border:        var(--paper-400);
@@ -175,13 +175,13 @@
   --font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
 
   --text-xs:  11px;
-  --text-sm:  12.5px;
-  --text-base: 13.5px;
-  --text-md:  15px;
-  --text-lg:  17px;
-  --text-xl:  21px;
-  --text-2xl: 26px;
-  --text-3xl: 32px;
+  --text-sm:  13px;
+  --text-base: 14px;
+  --text-md:  15.5px;
+  --text-lg:  18px;
+  --text-xl:  22px;
+  --text-2xl: 28px;
+  --text-3xl: 34px;
 
   --tracking-eyebrow: 0.11em;
   --tracking-label:   0.07em;
@@ -264,10 +264,16 @@ html {
 
 body {
   font-family: var(--font-ui);
-  background: var(--surface-app);
+  /* Paper grain — faint dot lattice over the ivory field */
+  background:
+    radial-gradient(rgba(20, 27, 38, 0.032) 1px, transparent 1px),
+    var(--surface-app);
+  background-size: 22px 22px, auto;
+  background-attachment: fixed, fixed;
   color: var(--text-primary);
   font-size: var(--text-base);
-  line-height: 1.55;
+  font-weight: 400;
+  line-height: 1.6;
 }
 
 a { color: var(--primary-text); text-decoration: none; transition: color 0.12s; }
@@ -320,7 +326,7 @@ a:hover { color: var(--primary); text-decoration: underline; }
 .rail-brand-text { overflow: hidden; }
 .rail-brand-name {
   display: block;
-  font-size: 14px; font-weight: 600;
+  font-size: 15px; font-weight: 700;
   color: var(--text-on-dark);
   letter-spacing: 0.04em;
   white-space: nowrap;
@@ -358,7 +364,7 @@ a:hover { color: var(--primary); text-decoration: underline; }
   padding: 7px 10px;
   border-radius: var(--radius-md);
   color: var(--text-on-dark-muted);
-  font-size: 13px; font-weight: 450;
+  font-size: 13px; font-weight: 500;
   text-decoration: none;
   cursor: pointer;
   transition: background 0.12s, color 0.12s;
@@ -703,16 +709,16 @@ a:hover { color: var(--primary); text-decoration: underline; }
 }
 .page-title {
   font-size: var(--text-2xl);
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: -0.018em;
-  line-height: 1.15;
+  letter-spacing: -0.022em;
+  line-height: 1.14;
 }
 .page-desc {
-  font-size: var(--text-sm);
+  font-size: 13.5px;
   color: var(--text-muted);
-  margin-top: 4px;
-  line-height: 1.5;
+  margin-top: 6px;
+  line-height: 1.6;
   max-width: 720px;
 }
 .page-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
@@ -738,9 +744,9 @@ a:hover { color: var(--primary); text-decoration: underline; }
   margin-bottom: 14px;
 }
 .section-title {
-  font-size: 12.5px; font-weight: 600;
+  font-size: 13px; font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: var(--text-primary);
 }
 .section-kicker {
@@ -767,12 +773,14 @@ a:hover { color: var(--primary); text-decoration: underline; }
    ──────────────────────────────────────────────────────────────── */
 .card, .panel {
   background: var(--surface-base);
+  background-image: radial-gradient(rgba(20, 27, 38, 0.026) 1px, transparent 1px);
+  background-size: 22px 22px;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 16px 18px;
   position: relative;
 }
-.card-title { font-size: 13.5px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
+.card-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
 .card-subtitle { font-size: 11.5px; color: var(--text-muted); margin-bottom: 12px; }
 .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 
@@ -800,20 +808,20 @@ a:hover { color: var(--primary); text-decoration: underline; }
 .metric-cell + .metric-cell { padding-left: 18px; border-left: 1px solid var(--border-faint); }
 .metric-value {
   font-family: var(--font-mono);
-  font-size: 24px; font-weight: 450;
+  font-size: 26px; font-weight: 500;
   color: var(--text-primary);
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
 .metric-label {
-  font-size: 10px; font-weight: 600;
+  font-size: 10.5px; font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
-  margin-top: 5px;
+  margin-top: 6px;
 }
-.metric-change { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+.metric-change { font-size: 11.5px; color: var(--text-faint); margin-top: 3px; }
 .metric-accent-bar { display: none; }
 .metric-cell.alert .metric-value { color: var(--danger); }
 .metric-cell.ok .metric-value { color: var(--green-700); }
@@ -850,9 +858,9 @@ a:hover { color: var(--primary); text-decoration: underline; }
   border-bottom: 1px solid var(--border-strong);
 }
 .data-table th {
-  padding: 8px 14px;
+  padding: 9px 14px;
   text-align: left;
-  font-size: 10px; font-weight: 600;
+  font-size: 10.5px; font-weight: 700;
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
   color: var(--text-muted);
@@ -868,13 +876,15 @@ a:hover { color: var(--primary); text-decoration: underline; }
 .data-table tbody tr:hover { background: var(--paper-200); }
 .data-table tbody tr.row-selected { background: var(--teal-50); }
 .data-table td {
-  padding: 9px 14px;
+  padding: 10px 14px;
   color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 400;
   vertical-align: middle;
 }
-.td-mono { font-family: var(--font-mono); font-size: 12px; }
+.td-mono { font-family: var(--font-mono); font-size: 12.5px; }
 .td-muted { color: var(--text-muted); }
-.td-primary { color: var(--text-primary); font-weight: 500; }
+.td-primary { color: var(--text-primary); font-weight: 600; }
 .td-num { text-align: right; font-variant-numeric: tabular-nums; }
 
 .table-footer {
@@ -942,8 +952,9 @@ tr.row-link:hover { background: var(--paper-200); }
   gap: 6px;
   padding: 7px 14px;
   border-radius: var(--radius-md);
-  font-size: 12.5px; font-weight: 600;
+  font-size: 13px; font-weight: 600;
   font-family: var(--font-ui);
+  letter-spacing: 0.01em;
   cursor: pointer;
   border: 1px solid transparent;
   transition: background 0.12s, border-color 0.12s, color 0.12s, box-shadow 0.12s;
@@ -983,7 +994,7 @@ tr.row-link:hover { background: var(--paper-200); }
 .btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
 .btn-danger:hover:not(:disabled) { background: var(--red-700); }
 
-.btn-sm { padding: 4px 10px; font-size: 12px; gap: 4px; }
+.btn-sm { padding: 5px 11px; font-size: 12.5px; gap: 4px; }
 .btn-lg { padding: 10px 20px; font-size: 14px; }
 .btn-icon { padding: 6px; width: 29px; height: 29px; }
 
@@ -993,10 +1004,10 @@ tr.row-link:hover { background: var(--paper-200); }
 .form-group { margin-bottom: 14px; }
 .form-label {
   display: block;
-  font-size: 11.5px; font-weight: 600;
+  font-size: 12px; font-weight: 600;
   color: var(--text-secondary);
-  margin-bottom: 5px;
-  letter-spacing: 0.01em;
+  margin-bottom: 6px;
+  letter-spacing: 0.015em;
 }
 .form-input,
 .form-select,
@@ -1192,10 +1203,10 @@ tr.row-link:hover { background: var(--paper-200); }
   margin-bottom: 4px;
 }
 .modal-title {
-  font-size: 16px; font-weight: 600;
+  font-size: 16.5px; font-weight: 700;
   color: var(--text-primary);
   line-height: 1.25;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.012em;
 }
 .modal-meta {
   display: flex;
@@ -1271,8 +1282,8 @@ tr.row-link:hover { background: var(--paper-200); }
   gap: 8px;
 }
 .state-icon { color: var(--paper-500); margin-bottom: 4px; }
-.state-title { font-size: 13.5px; font-weight: 600; color: var(--text-secondary); }
-.state-desc { font-size: 12.5px; color: var(--text-muted); max-width: 400px; line-height: 1.55; }
+.state-title { font-size: 14px; font-weight: 600; color: var(--text-secondary); }
+.state-desc { font-size: 13px; color: var(--text-muted); max-width: 400px; line-height: 1.6; }
 
 /* ────────────────────────────────────────────────────────────────
    20. MONOSPACE / CODE — identifiers & hashes
@@ -1411,18 +1422,19 @@ pre, .raw-ocr-pre {
   position: relative; z-index: 1;
 }
 .login-headline {
-  font-size: 52px; font-weight: 600;
-  color: #f4f7fb;
+  font-size: 54px; font-weight: 700;
+  color: #f6f9fc;
   line-height: 1.04;
-  letter-spacing: -0.03em;
-  margin-bottom: 14px;
+  letter-spacing: -0.032em;
+  margin-bottom: 16px;
   position: relative; z-index: 1;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
 }
 .login-headline-accent { color: var(--teal-300); }
 .login-subheadline {
-  font-size: 14px; font-weight: 400;
-  color: var(--text-on-dark-muted);
-  line-height: 1.6;
+  font-size: 14.5px; font-weight: 400;
+  color: #aab7cb;
+  line-height: 1.65;
   margin-bottom: 44px;
   max-width: 470px;
   position: relative; z-index: 1;
@@ -1486,7 +1498,10 @@ pre, .raw-ocr-pre {
 
 /* Right: paper registry panel */
 .login-right {
-  background: var(--paper-100);
+  background:
+    radial-gradient(rgba(20, 27, 38, 0.03) 1px, transparent 1px),
+    var(--paper-100);
+  background-size: 22px 22px, auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -1508,10 +1523,10 @@ pre, .raw-ocr-pre {
 }
 .login-auth-eyebrow::before { content: ''; width: 16px; height: 1px; background: var(--teal-700); display: inline-block; }
 .login-auth-title {
-  font-size: 23px; font-weight: 600;
+  font-size: 24px; font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: -0.015em;
-  margin-bottom: 4px;
+  letter-spacing: -0.018em;
+  margin-bottom: 5px;
 }
 .login-auth-subtitle { font-size: 12.5px; color: var(--text-muted); margin-bottom: 26px; }
 .login-form { display: flex; flex-direction: column; }
@@ -1550,10 +1565,11 @@ pre, .raw-ocr-pre {
   color: var(--primary-contrast);
   border: none;
   border-radius: var(--radius-md);
-  font-size: 13.5px; font-weight: 600;
+  font-size: 14px; font-weight: 700;
   font-family: var(--font-ui);
   cursor: pointer;
   margin-top: 8px;
+  letter-spacing: 0.02em;
   transition: background 0.15s, box-shadow 0.15s;
   letter-spacing: 0.01em;
 }
