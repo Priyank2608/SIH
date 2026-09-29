@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
     access_token_minutes: int = 120
+    initial_user_password: str = ""
     
     demo_mode: bool = True
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
@@ -32,8 +33,14 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_security_settings(self):
+        if self.database_url.startswith("postgresql://"):
+            self.database_url = self.database_url.replace(
+                "postgresql://", "postgresql+psycopg://", 1
+            )
         if self.jwt_algorithm != "HS256":
             raise ValueError("Only HS256 JWT signing is supported")
+        if not self.demo_mode and len(self.initial_user_password) < 12:
+            raise ValueError("BIDSHIELD_INITIAL_USER_PASSWORD must contain at least 12 characters when demo mode is disabled")
         if not self.jwt_secret:
             if not self.demo_mode:
                 raise ValueError("BIDSHIELD_JWT_SECRET must be set when demo mode is disabled")

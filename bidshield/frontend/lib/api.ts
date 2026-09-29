@@ -1,4 +1,5 @@
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
+export const API_BASE = API_URL.endsWith('/api/v1') ? API_URL : `${API_URL}/api/v1`;
 
 export function getToken(): string | null {
   if (typeof window === 'undefined') return null;

@@ -114,19 +114,10 @@ export default function MultiDocUpload({ bidderId, tenderId, onComplete }: Props
         if (tenderId) formData.append('tender_id', String(tenderId));
         formData.append('file', item.file);
 
-        const token = typeof window !== 'undefined' ? localStorage.getItem('bidshield_token') : null;
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/documents/upload`, {
+        const result = await api('/documents/upload', {
           method: 'POST',
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: formData,
         });
-
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ detail: 'Upload failed' }));
-          throw new Error(err.detail || `HTTP ${res.status}`);
-        }
-
-        const result = await res.json();
         setQueue(prev => prev.map(f =>
           f.id === item.id
             ? { ...f, status: 'success', resultDocId: result.document_id }

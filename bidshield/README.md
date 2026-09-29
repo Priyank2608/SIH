@@ -120,6 +120,10 @@ to apply migrations and `alembic downgrade -1` to reverse the latest migration.
 The seed script preserves existing data by default; pass `--reset` only when you
 intend to rebuild the synthetic demo database.
 
+The optional offline model-training scripts need extra dependencies; install
+`backend/requirements-training.txt` when running those scripts. Production
+deployments use `backend/requirements.txt` without scikit-learn/joblib.
+
 ### 2. Frontend Setup
 ```bash
 cd frontend
@@ -466,9 +470,10 @@ docker compose up --build
 Run the full automated test suite (unit, API, end-to-end workflow, tenant isolation, audit integrity, PDF extraction, and migrations):
 ```bash
 cd backend
+pip install -r requirements-dev.txt
 .venv\Scripts\python.exe -m pytest ../tests -v
 ```
-Run it with the Python environment that has `backend/requirements.txt` installed. Tests cover API flows and synthetic scenarios; they do not provide a formal coverage percentage.
+Tests cover API flows and synthetic scenarios; they do not provide a formal coverage percentage.
 
 ---
 

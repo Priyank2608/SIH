@@ -18,6 +18,7 @@ const DEMO_ACCOUNTS = [
   { label: 'Auditor',              username: 'auditor',  password: 'BidShield@123' },
   { label: 'Administrator',        username: 'admin',    password: 'BidShield@123' },
 ];
+const showDemoAccounts = process.env.NEXT_PUBLIC_DEMO_MODE !== 'false';
 
 /* Evidence workflow trace — Submission → Decision */
 const WORKFLOW_STEPS = [
@@ -75,12 +76,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fillDemo = (u: string, p: string) => {
-    setUsername(u);
-    setPassword(p);
-    setError(null);
   };
 
   return (
@@ -273,32 +268,38 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <hr className="login-divider" />
-
-        {/* Demo credentials */}
-        <div className="login-demo-box">
-          <div className="login-demo-title">
-            <AlertCircle size={11} aria-hidden="true" />
-            Demo Mode — Development Accounts
-          </div>
-          <div className="login-demo-buttons">
-            {DEMO_ACCOUNTS.map(({ label, username: u, password: p }) => (
-              <button
-                key={u}
-                type="button"
-                className="login-demo-btn"
-                onClick={() => fillDemo(u, p)}
-                aria-label={`Fill demo credentials for ${label}`}
-              >
-                <span className="login-demo-btn-role">{label}</span>
-                <span className="login-demo-btn-user">{u}</span>
-              </button>
-            ))}
-          </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-faint)', lineHeight: '1.4' }}>
-            All demo accounts use password: <code>BidShield@123</code>
-          </div>
-        </div>
+        {showDemoAccounts && (
+          <>
+            <hr className="login-divider" />
+            <div className="login-demo-box">
+              <div className="login-demo-title">
+                <AlertCircle size={11} aria-hidden="true" />
+                Demo Mode — Development Accounts
+              </div>
+              <div className="login-demo-buttons">
+                {DEMO_ACCOUNTS.map(({ label, username: u, password: p }) => (
+                  <button
+                    key={u}
+                    type="button"
+                    className="login-demo-btn"
+                    onClick={() => {
+                      setUsername(u);
+                      setPassword(p);
+                      setError(null);
+                    }}
+                    aria-label={`Fill demo credentials for ${label}`}
+                  >
+                    <span className="login-demo-btn-role">{label}</span>
+                    <span className="login-demo-btn-user">{u}</span>
+                  </button>
+                ))}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-faint)', lineHeight: '1.4' }}>
+                All demo accounts use password: <code>BidShield@123</code>
+              </div>
+            </div>
+          </>
+        )}
 
         <p className="login-disclaimer">
           Access restricted to authorized BidShield evaluation personnel.

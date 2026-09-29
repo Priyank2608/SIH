@@ -13,6 +13,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from app.db.session import engine, SessionLocal, Base
+from app.core.config import settings
 from app.core.security import hash_password
 from app.models.entities import (
     Tenant, User, Tender, TenderRequirement, Bidder, TenderBidder,
@@ -64,7 +65,7 @@ def seed_database(reset: bool = False):
     db.commit()
     db.refresh(tenant)
 
-    officer_pwd = hash_password("BidShield@123")
+    officer_pwd = hash_password(settings.initial_user_password or "BidShield@123")
     officer = User(
         tenant_id=tenant.id,
         username="officer",
@@ -701,7 +702,7 @@ def seed_database(reset: bool = False):
     print(f"Total Tenders: {len(tenders)}")
     print(f"Total Bidders: {len(bidders)}")
     print(f"Total Documents: {doc_counter}")
-    print("Demo Officer Login: officer / BidShield@123")
+    print("Seeded accounts: officer, auditor, admin")
     db.close()
 
 if __name__ == "__main__":
