@@ -1,6 +1,6 @@
 bidshield/frontend/node_modules/
 bidshield/frontend/.next/
-bidshield/backend/storage/*.db
+bidshield/backend/storage/
 bidshield/storage/
 __pycache__/
 .pytest_cache/
