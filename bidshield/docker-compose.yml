@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bidshield-postgres
+    environment:
+      POSTGRES_USER: bidshield
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env before starting Docker Compose}
+      POSTGRES_DB: bidshield
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bidshield -d bidshield"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bidshield-backend
+    environment:
+      BIDSHIELD_DATABASE_URL: postgresql+psycopg://bidshield:${POSTGRES_PASSWORD}@postgres:5432/bidshield
+      BIDSHIELD_JWT_SECRET: ${BIDSHIELD_JWT_SECRET:?Set BIDSHIELD_JWT_SECRET in .env before starting Docker Compose}
+      BIDSHIELD_CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+      BIDSHIELD_DEMO_MODE: "true"
+      BIDSHIELD_STORAGE_DIR: ./storage
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - backend_storage:/app/storage
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: bidshield-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  backend_storage:
