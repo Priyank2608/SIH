@@ -307,6 +307,8 @@ class DashboardMetricsOut(BaseModel):
     pending_verifications: int
     completed_verifications: int
     manual_reviews_required: int
+    total_documents: int
+    analyzed_bidders: int
     overall_compliance_rate: float
     risk_distribution: Dict[str, int]
     attention_documents: List[Dict[str, Any]]

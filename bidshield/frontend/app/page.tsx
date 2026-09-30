@@ -113,7 +113,6 @@ function ProcurementDashboard() {
 
   // Derived figures — ledger index row
   const totalValue       = tenders.reduce((a: number, t: any) => a + (t.estimated_value_cr || 0), 0);
-  const departmentCount  = new Set(tenders.map((t: any) => t.department).filter(Boolean)).size;
   const priorityBidders  = bidders.filter((b: any) => b.is_startup || String(b.enterprise_type || '').toUpperCase().includes('MSME')).length;
   const verificationTotal =
     metrics
@@ -123,6 +122,7 @@ function ProcurementDashboard() {
     verificationTotal && verificationTotal > 0
       ? `${((metrics.completed_verifications / verificationTotal) * 100).toFixed(0)}%`
       : '—';
+  const hasAnalysis = (metrics?.analyzed_bidders ?? 0) > 0;
 
   const anyError = metricsError || tendersError || biddersError;
 
@@ -143,8 +143,8 @@ function ProcurementDashboard() {
           <div className="page-eyebrow">Procurement Operations · Review Command</div>
           <h1 className="page-title">Dashboard</h1>
           <p className="page-desc">
-            Evidence-backed review of bid submissions for authorized
-            procurement officers, verification officers, and auditors.
+            Create a tender, review submitted evidence, and make an explicit
+            procurement determination when the record is ready.
           </p>
         </div>
         <div className="page-actions">
@@ -184,7 +184,7 @@ function ProcurementDashboard() {
           </div>
           <div className="metric-label">Active Tenders</div>
           <div className="metric-change">
-            ₹{totalValue.toFixed(1)} Cr portfolio · {departmentCount} dept{departmentCount !== 1 ? 's' : ''}
+            {tenders.length ? `₹${totalValue.toFixed(1)} Cr across tender records` : 'Create a tender to begin'}
           </div>
         </div>
         <div className="metric-cell">
@@ -210,11 +210,11 @@ function ProcurementDashboard() {
         </div>
         <div className="metric-cell">
           <div className="metric-value">
-            {metricsLoading ? '…' : `${metrics?.overall_compliance_rate ?? 0}%`}
+            {metricsLoading ? '…' : (hasAnalysis ? `${metrics?.overall_compliance_rate ?? 0}%` : '—')}
           </div>
           <div className="metric-label">Compliance Rate</div>
           <div className="metric-change">
-            {metrics?.risk_distribution?.HIGH ?? 0} high risk
+            {hasAnalysis ? `${metrics?.risk_distribution?.HIGH ?? 0} high risk` : 'No analysis results available'}
           </div>
         </div>
         <div className="metric-cell">
@@ -419,9 +419,15 @@ function ProcurementDashboard() {
             <div className="card card-flush">
               {!metrics?.attention_documents?.length ? (
                 <div className="state-wrapper" style={{ padding: '20px' }}>
-                  <CheckCircle2 size={20} style={{ color: 'var(--success)' }} aria-hidden="true" />
-                  <div className="state-title" style={{ color: 'var(--success)' }}>No flags</div>
-                  <div className="state-desc">All documents are clear</div>
+                  <CheckCircle2 size={20} className="state-icon" aria-hidden="true" />
+                  <div className="state-title">
+                    {(metrics?.total_documents ?? 0) ? 'No documents require review' : 'No documents available'}
+                  </div>
+                  <div className="state-desc">
+                    {(metrics?.total_documents ?? 0)
+                      ? 'There are no current verification findings requiring action.'
+                      : 'Upload bidder documents to begin scrutiny.'}
+                  </div>
                 </div>
               ) : (
                 <div style={{ padding: '4px 0' }}>

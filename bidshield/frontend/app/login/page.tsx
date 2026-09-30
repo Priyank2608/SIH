@@ -26,7 +26,9 @@ const DEMO_ACCOUNTS = [
   { label: 'Auditor',              username: 'auditor',  password: 'BidShield@123' },
   { label: 'Administrator',        username: 'admin',    password: 'BidShield@123' },
 ];
-const showDemoAccounts = process.env.NEXT_PUBLIC_DEMO_MODE !== 'false';
+// Development credentials are never advertised by default. A local test/demo
+// environment can opt in explicitly with NEXT_PUBLIC_DEMO_MODE=true.
+const showDemoAccounts = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
 /* Flip-card back: concise product capability list */
 const CAPABILITIES = [

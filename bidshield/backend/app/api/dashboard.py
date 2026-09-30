@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.entities import (
     Tender, Bidder, TenderBidder, BidderDocument,
-    VerificationResult, AuditLog, OCRResult
+    VerificationResult, AuditLog, OCRResult, ComplianceResult
 )
 from app.schemas.schemas import DashboardMetricsOut
 from app.core.security import get_current_user, AuthenticatedUser
@@ -11,7 +11,10 @@ from app.core.security import get_current_user, AuthenticatedUser
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
 @router.get("", response_model=DashboardMetricsOut)
-def get_dashboard_metrics(db: Session = Depends(get_db), user: AuthenticatedUser = Depends(get_current_user)):
+def get_dashboard_metrics(
+    db: Session = Depends(get_db),
+    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER")),
+):
     active_tenders = db.query(Tender).filter(Tender.tenant_id == user.tenant_id, Tender.status == "ACTIVE").count()
     total_bidders = db.query(Bidder).filter(Bidder.tenant_id == user.tenant_id).count()
 
@@ -24,13 +27,29 @@ def get_dashboard_metrics(db: Session = Depends(get_db), user: AuthenticatedUser
     tbs = (db.query(TenderBidder).join(Tender, Tender.id == TenderBidder.tender_id)
            .join(Bidder, Bidder.id == TenderBidder.bidder_id)
            .filter(Tender.tenant_id == user.tenant_id, Bidder.tenant_id == user.tenant_id).all())
-    total_score = sum(tb.compliance_score for tb in tbs) if tbs else 0.0
-    overall_compliance = round(total_score / len(tbs), 1) if tbs else 0.0
+    # A score is meaningful only after at least one requirement has actually
+    # been evaluated. A newly enrolled bidder must not depress a real rate or
+    # be presented as a zero-percent analysis result.
+    analyzed_tbs = [
+        tb for tb in tbs
+        if db.query(ComplianceResult.id).filter(
+            ComplianceResult.tender_bidder_id == tb.id
+        ).first()
+    ]
+    total_score = sum(tb.compliance_score for tb in analyzed_tbs)
+    overall_compliance = round(total_score / len(analyzed_tbs), 1) if analyzed_tbs else 0.0
 
-    risk_dist = {"LOW": 0, "MEDIUM": 0, "HIGH": 0, "INSUFFICIENT_EVIDENCE": 0}
+    risk_dist = {"LOW": 0, "MEDIUM": 0, "HIGH": 0, "INSUFFICIENT_EVIDENCE": 0, "NOT_ASSESSED": 0}
     for tb in tbs:
-        r = tb.risk_level or "LOW"
+        # Missing analysis is not a risk finding. In particular, it must never
+        # become LOW risk merely because a bidder has not been processed yet.
+        r = tb.risk_level or "NOT_ASSESSED"
         risk_dist[r] = risk_dist.get(r, 0) + 1
+
+    total_documents = (db.query(BidderDocument)
+        .join(Bidder, Bidder.id == BidderDocument.bidder_id)
+        .filter(Bidder.tenant_id == user.tenant_id)
+        .count())
 
     # Documents requiring attention
     attention_docs = []
@@ -61,6 +80,8 @@ def get_dashboard_metrics(db: Session = Depends(get_db), user: AuthenticatedUser
         "pending_verifications": pending_verifs,
         "completed_verifications": completed_verifs,
         "manual_reviews_required": manual_reviews,
+        "total_documents": total_documents,
+        "analyzed_bidders": len(analyzed_tbs),
         "overall_compliance_rate": overall_compliance,
         "risk_distribution": risk_dist,
         "attention_documents": attention_docs,
