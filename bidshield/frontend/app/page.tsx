@@ -41,16 +41,17 @@ function ProcurementDashboard() {
   const [isRefreshing, setIsRefreshing]   = useState(false);
   const [generatingReport, setGeneratingReport] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  // Empty defaults — the officer enters real tender data. No pre-filled values.
   const [newTender, setNewTender] = useState({
     tender_ref: '',
     gem_ref: '',
     title: '',
-    department: 'Ministry of Electronics and Information Technology',
-    category: 'IT Equipment & Hardware',
-    estimated_value_cr: 5.5,
+    department: '',
+    category: '',
+    estimated_value_cr: '' as string | number,
     issue_date: new Date().toISOString().slice(0, 10),
-    closing_date: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
-    description: 'Procurement of enterprise workstations, OEM authorization, Make in India 50% content, GST and PAN compliance.',
+    closing_date: '',
+    description: '',
   });
   const [creatingTender, setCreatingTender] = useState(false);
 
@@ -64,7 +65,14 @@ function ProcurementDashboard() {
     e.preventDefault();
     try {
       setCreatingTender(true);
-      await api('/tenders', { method: 'POST', body: JSON.stringify(newTender) });
+      await api('/tenders', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...newTender,
+          category: newTender.category || 'General',
+          estimated_value_cr: parseFloat(String(newTender.estimated_value_cr)) || 0,
+        }),
+      });
       setShowCreateModal(false);
       await Promise.all([refreshDashboard(true), refreshTenders(true)]);
     } catch (err: any) {
@@ -90,15 +98,15 @@ function ProcurementDashboard() {
 
   const openCreateModal = () => {
     setNewTender({
-      tender_ref: `GEM/2026/B/${Math.floor(10000 + Math.random() * 90000)}`,
-      gem_ref: `GEM-REF-${Math.floor(10000 + Math.random() * 90000)}`,
+      tender_ref: '',
+      gem_ref: '',
       title: '',
-      department: 'Ministry of Electronics and Information Technology',
-      category: 'IT Equipment & Hardware',
-      estimated_value_cr: 6.2,
+      department: '',
+      category: '',
+      estimated_value_cr: '',
       issue_date: new Date().toISOString().slice(0, 10),
-      closing_date: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
-      description: 'Tender procurement for IT infrastructure and hardware.',
+      closing_date: '',
+      description: '',
     });
     setShowCreateModal(true);
   };
@@ -135,7 +143,8 @@ function ProcurementDashboard() {
           <div className="page-eyebrow">Procurement Operations · Review Command</div>
           <h1 className="page-title">Dashboard</h1>
           <p className="page-desc">
-            Active GeM bid submissions, verification pipeline status, and the officer review queue.
+            Evidence-backed review of bid submissions for authorized
+            procurement officers, verification officers, and auditors.
           </p>
         </div>
         <div className="page-actions">
@@ -265,7 +274,7 @@ function ProcurementDashboard() {
                         <div className="state-wrapper" style={{ padding: '28px 24px' }}>
                           <FileText size={28} className="state-icon" aria-hidden="true" />
                           <div className="state-title">No tenders yet</div>
-                          <div className="state-desc">Create the first GeM tender to begin the review workflow.</div>
+                          <div className="state-desc">Create the first tender to begin the review workflow.</div>
                           <button className="btn btn-primary btn-sm" style={{ marginTop: '12px' }} onClick={() => setShowCreateModal(true)}>
                             <PlusCircle size={12} aria-hidden="true" /> Create First Tender
                           </button>
@@ -522,7 +531,7 @@ function ProcurementDashboard() {
             <div className="modal-header">
               <div>
                 <div className="modal-pretitle">Tender Management</div>
-                <h2 className="modal-title">Publish New GeM Tender</h2>
+                <h2 className="modal-title">Create New Tender</h2>
               </div>
               <button className="btn-close" onClick={() => setShowCreateModal(false)} aria-label="Close dialog">
                 ×
@@ -583,13 +592,13 @@ function ProcurementDashboard() {
                   </div>
                   <div className="form-group">
                     <label className="form-label" htmlFor="nt-cat">Procurement Category</label>
-                    <select id="nt-cat" className="form-select" value={newTender.category} onChange={e => setNewTender({ ...newTender, category: e.target.value })}>
-                      <option>IT Equipment &amp; Hardware</option>
-                      <option>Cloud &amp; Cybersecurity Services</option>
-                      <option>Medical Devices &amp; Hospital Equipment</option>
-                      <option>Heavy Electrical &amp; Power Equipment</option>
-                      <option>Solar &amp; Renewable Energy</option>
-                    </select>
+                    <input
+                      id="nt-cat"
+                      type="text" className="form-input"
+                      value={newTender.category}
+                      onChange={e => setNewTender({ ...newTender, category: e.target.value })}
+                      placeholder="e.g. Supply of Gas Cylinders category"
+                    />
                   </div>
                 </div>
 
@@ -602,7 +611,7 @@ function ProcurementDashboard() {
                       id="nt-value"
                       type="number" step="0.1" min="0" className="form-input"
                       value={newTender.estimated_value_cr}
-                      onChange={e => setNewTender({ ...newTender, estimated_value_cr: parseFloat(e.target.value) || 1 })}
+                      onChange={e => setNewTender({ ...newTender, estimated_value_cr: e.target.value })}
                       required aria-required="true"
                     />
                   </div>
@@ -629,13 +638,13 @@ function ProcurementDashboard() {
                     onChange={e => setNewTender({ ...newTender, description: e.target.value })}
                     placeholder="Specify requirements: GST, PAN, OEM Authorization, Make in India local content..."
                   />
-                  <span className="form-hint">System will extract initial compliance rules for officer review.</span>
+                  <span className="form-hint">AI may suggest draft requirements after creation; only officer-approved requirements are used for compliance.</span>
                 </div>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-outline" onClick={() => setShowCreateModal(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={creatingTender} aria-busy={creatingTender}>
-                  {creatingTender ? 'Publishing…' : 'Publish Tender & Extract Criteria'}
+                  {creatingTender ? 'Creating…' : 'Create Tender'}
                 </button>
               </div>
             </form>

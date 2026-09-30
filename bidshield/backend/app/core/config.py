@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import model_validator
 
 class Settings(BaseSettings):
-    app_name: str = "BidShield: AI-Powered GeM Bid Compliance Verification Platform"
+    app_name: str = "BidShield: AI-Assisted Procurement Compliance Verification Platform"
     app_version: str = "1.0.0"
     api_prefix: str = "/api/v1"
     

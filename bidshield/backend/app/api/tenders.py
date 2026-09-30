@@ -56,7 +56,7 @@ def list_tenders(db: Session = Depends(get_db), user: AuthenticatedUser = Depend
 def create_tender(
     payload: TenderCreate,
     db: Session = Depends(get_db),
-    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER", "SYSTEM_ADMIN"))
+    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER"))
 ):
     existing = db.query(Tender).filter(Tender.tenant_id == user.tenant_id, Tender.tender_ref == payload.tender_ref).first()
     if existing:
@@ -162,7 +162,7 @@ def get_tender(id: int, db: Session = Depends(get_db), user: AuthenticatedUser =
 def trigger_requirement_extraction(
     id: int,
     db: Session = Depends(get_db),
-    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER", "SYSTEM_ADMIN"))
+    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER"))
 ):
     tender = get_tenant_tender(db, id, user.tenant_id)
     if tender.pdf_bytes:
@@ -189,7 +189,7 @@ async def upload_tender_pdf(
     id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER", "SUPER_ADMIN")),
+    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER")),
 ):
     tender = get_tenant_tender(db, id, user.tenant_id)
     content = await file.read(settings.max_upload_mb * 1024 * 1024 + 1)
@@ -221,7 +221,7 @@ def add_requirement(
     id: int,
     payload: RequirementCreate,
     db: Session = Depends(get_db),
-    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER", "SYSTEM_ADMIN"))
+    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER"))
 ):
     get_tenant_tender(db, id, user.tenant_id)
     existing = db.query(TenderRequirement).filter(
@@ -264,7 +264,7 @@ def update_requirement(
     req_id: int,
     payload: RequirementUpdate,
     db: Session = Depends(get_db),
-    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER", "SYSTEM_ADMIN"))
+    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER"))
 ):
     get_tenant_tender(db, id, user.tenant_id)
     req = db.query(TenderRequirement).filter(
@@ -304,7 +304,7 @@ def approve_requirement(
     id: int,
     req_id: int,
     db: Session = Depends(get_db),
-    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER", "SYSTEM_ADMIN"))
+    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER"))
 ):
     get_tenant_tender(db, id, user.tenant_id)
     req = db.query(TenderRequirement).filter(
@@ -336,7 +336,7 @@ def reject_requirement(
     id: int,
     req_id: int,
     db: Session = Depends(get_db),
-    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER", "SYSTEM_ADMIN"))
+    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER"))
 ):
     get_tenant_tender(db, id, user.tenant_id)
     req = db.query(TenderRequirement).filter(
@@ -368,7 +368,7 @@ def analyze_bidder(
     id: int,
     bidder_id: int,
     db: Session = Depends(get_db),
-    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER", "SYSTEM_ADMIN"))
+    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER"))
 ):
     get_tenant_tender(db, id, user.tenant_id)
     get_tenant_bidder(db, bidder_id, user.tenant_id)
@@ -431,7 +431,7 @@ def record_officer_decision(
     bidder_id: int,
     payload: OfficerDecisionRequest,
     db: Session = Depends(get_db),
-    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER", "SYSTEM_ADMIN"))
+    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER"))
 ):
     get_tenant_tender(db, id, user.tenant_id)
     get_tenant_bidder(db, bidder_id, user.tenant_id)

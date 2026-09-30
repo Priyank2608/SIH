@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.entities import GeneratedReport, Tender, Bidder, TenderBidder, User
 from app.schemas.schemas import GeneratedReportOut
-from app.core.security import get_current_user, AuthenticatedUser
+from app.core.security import get_current_user, require_roles, AuthenticatedUser
 from app.services.report_service import generate_quick_bidder_list_pdf, generate_detailed_bidder_assessment_pdf
 from app.services.audit_service import log_audit_event
 from app.services.tenant_service import get_tenant_tender, get_tenant_bidder
@@ -30,7 +30,7 @@ def list_reports(db: Session = Depends(get_db), user: AuthenticatedUser = Depend
 def create_quick_list_report(
     payload: QuickListRequest,
     db: Session = Depends(get_db),
-    user: AuthenticatedUser = Depends(get_current_user)
+    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER"))
 ):
     get_tenant_tender(db, payload.tender_id, user.tenant_id)
     officer = db.query(User).filter(User.id == user.id, User.tenant_id == user.tenant_id).first()
@@ -47,7 +47,7 @@ def create_quick_list_report(
 def create_detailed_assessment_report(
     payload: DetailedAssessmentRequest,
     db: Session = Depends(get_db),
-    user: AuthenticatedUser = Depends(get_current_user)
+    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER"))
 ):
     get_tenant_tender(db, payload.tender_id, user.tenant_id)
     get_tenant_bidder(db, payload.bidder_id, user.tenant_id)

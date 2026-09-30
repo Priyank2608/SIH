@@ -20,7 +20,7 @@ from app.api.dashboard import router as dashboard_router
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
-    description="Internal Procurement-Authority AI Compliance Verification Platform for GeM Procurement (SIH26100).",
+    description="BidShield — AI-Assisted Procurement Compliance Platform. Internal procurement-authority verification workspace.",
     openapi_url=f"{settings.api_prefix}/openapi.json",
     docs_url=f"{settings.api_prefix}/docs",
     redoc_url=f"{settings.api_prefix}/redoc",

@@ -68,7 +68,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   VERIFICATION_OFFICER: [
     'tender.view',
     'bidder.view', 'bidder.dossier',
-    'document.view', 'document.upload', 'document.ocr.view',
+    'document.view', 'document.ocr.view',
     'verification.view', 'verification.retry',
     'compliance.view',
     'evidence.view',
@@ -86,17 +86,18 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'report.view',
     'audit.view',
   ],
+  // Administration authority does NOT confer procurement decision or intake
+  // authority. The admin role sees system/oversight views only; procurement
+  // write actions remain exclusive to the Procurement Officer.
   SUPER_ADMIN: [
-    // Admin gets all permissions
-    'tender.view', 'tender.create', 'tender.edit', 'tender.requirements.approve',
+    'tender.view',
     'bidder.view', 'bidder.dossier',
-    'document.view', 'document.upload', 'document.ocr.view',
+    'document.view', 'document.ocr.view',
     'verification.view', 'verification.retry',
     'compliance.view',
     'risk.view',
     'evidence.view',
-    'decision.create',
-    'report.view', 'report.generate',
+    'report.view',
     'audit.view',
     'admin.users', 'admin.roles', 'admin.system',
   ],
@@ -131,7 +132,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard',     href: '/',             icon: 'LayoutDashboard', permission: 'tender.view' },
   { label: 'Tenders',       href: '/tenders',      icon: 'FileText',        permission: 'tender.view' },
   { label: 'Bidders',       href: '/bidders',      icon: 'Users',           permission: 'bidder.view' },
-  { label: 'Verification',  href: '/verification', icon: 'ShieldCheck',     permission: 'verification.view' },
+  { label: 'Documents',     href: '/verification', icon: 'ShieldCheck',     permission: 'document.view' },
   { label: 'Reports',       href: '/reports',      icon: 'FileBarChart',    permission: 'report.view' },
   { label: 'Audit Trail',   href: '/audit',        icon: 'History',         permission: 'audit.view' },
 ];

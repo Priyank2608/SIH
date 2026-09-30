@@ -1,46 +1,26 @@
 'use client';
 import React, { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import StatusBadge from '../../components/StatusBadge';
-import { api } from '../../lib/api';
 import { useApi } from '../../lib/useApi';
 import {
   Search,
   PlusCircle,
   RotateCw,
-  FileText,
-  ChevronRight,
   AlertCircle,
   InboxIcon,
-  X,
   Filter,
+  ChevronRight,
 } from 'lucide-react';
 
-const CATEGORIES = [
-  'IT Equipment & Hardware',
-  'Cloud & Cybersecurity Services',
-  'Medical Devices & Hospital Equipment',
-  'Heavy Electrical & Power Equipment',
-  'Solar & Renewable Energy',
-];
-
 export default function TendersListPage() {
+  const router = useRouter();
   const { data: tenders = [], loading, error, mutate: refreshTenders } = useApi<any[]>('/tenders');
   const [search, setSearch]             = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newTender, setNewTender] = useState({
-    tender_ref:         '',
-    gem_ref:            '',
-    title:              '',
-    department:         '',
-    category:           'IT Equipment & Hardware',
-    estimated_value_cr: 1.0,
-    issue_date:         new Date().toISOString().slice(0, 10),
-    closing_date:       new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
-    description:        '',
-  });
-  const [creating, setCreating] = useState(false);
+  // Creation flows through the dedicated tender creation page — no pre-filled demo values.
+  const [creating] = useState(false);
 
   /* Filtered list */
   const filteredTenders = useMemo(() => {
@@ -59,36 +39,8 @@ export default function TendersListPage() {
     [tenders]
   );
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setCreating(true);
-      await api('/tenders', {
-        method: 'POST',
-        body: JSON.stringify(newTender),
-      });
-      setShowCreateModal(false);
-      await refreshTenders(true);
-    } catch (err: any) {
-      alert(err.message || 'Failed to create tender');
-    } finally {
-      setCreating(false);
-    }
-  };
-
   function openCreateModal() {
-    setNewTender({
-      tender_ref:         `GEM/2026/B/00${Math.floor(10000 + Math.random() * 90000)}`,
-      gem_ref:            `GEM-REF-${Math.floor(10000 + Math.random() * 90000)}`,
-      title:              '',
-      department:         'Ministry of Communications',
-      category:           'IT Equipment & Hardware',
-      estimated_value_cr: 5.0,
-      issue_date:         new Date().toISOString().slice(0, 10),
-      closing_date:       new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
-      description:        '',
-    });
-    setShowCreateModal(true);
+    router.push('/tenders/new');
   }
 
   return (
@@ -296,166 +248,6 @@ export default function TendersListPage() {
           </div>
         )}
       </div>
-
-      {/* ========== Create Tender Modal ========== */}
-      {showCreateModal && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowCreateModal(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Create new tender"
-        >
-          <div className="modal-container modal-md" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div>
-                <div className="modal-pretitle">Tender Management</div>
-                <h2 className="modal-title">Publish New GeM Tender</h2>
-              </div>
-              <button
-                className="btn-close"
-                onClick={() => setShowCreateModal(false)}
-                aria-label="Close"
-              >
-                <X size={16} aria-hidden="true" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreate}>
-              <div className="modal-body">
-                <div className="grid-2">
-                  <div className="form-group">
-                    <label className="form-label">
-                      Tender Reference ID <span aria-hidden="true" style={{ color: 'var(--danger)' }}>*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={newTender.tender_ref}
-                      onChange={(e) => setNewTender({ ...newTender, tender_ref: e.target.value })}
-                      required
-                      aria-required="true"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">GeM Portal Reference</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={newTender.gem_ref}
-                      onChange={(e) => setNewTender({ ...newTender, gem_ref: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">
-                    Tender Title <span aria-hidden="true" style={{ color: 'var(--danger)' }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={newTender.title}
-                    onChange={(e) => setNewTender({ ...newTender, title: e.target.value })}
-                    placeholder="e.g. Supply of Advanced Workstations and IT Hardware"
-                    required
-                    aria-required="true"
-                  />
-                </div>
-
-                <div className="grid-2">
-                  <div className="form-group">
-                    <label className="form-label">
-                      Ministry / Department <span aria-hidden="true" style={{ color: 'var(--danger)' }}>*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={newTender.department}
-                      onChange={(e) => setNewTender({ ...newTender, department: e.target.value })}
-                      required
-                      aria-required="true"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Procurement Category</label>
-                    <select
-                      className="form-select"
-                      value={newTender.category}
-                      onChange={(e) => setNewTender({ ...newTender, category: e.target.value })}
-                    >
-                      {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid-2">
-                  <div className="form-group">
-                    <label className="form-label">
-                      Estimated Value (₹ Crores) <span aria-hidden="true" style={{ color: 'var(--danger)' }}>*</span>
-                    </label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      className="form-input"
-                      value={newTender.estimated_value_cr}
-                      onChange={(e) => setNewTender({ ...newTender, estimated_value_cr: parseFloat(e.target.value) || 1.0 })}
-                      required
-                      aria-required="true"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">
-                      Bid Closing Date <span aria-hidden="true" style={{ color: 'var(--danger)' }}>*</span>
-                    </label>
-                    <input
-                      type="date"
-                      className="form-input"
-                      value={newTender.closing_date}
-                      onChange={(e) => setNewTender({ ...newTender, closing_date: e.target.value })}
-                      required
-                      aria-required="true"
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Scope &amp; Mandatory Compliance Conditions</label>
-                  <textarea
-                    className="form-textarea"
-                    rows={3}
-                    value={newTender.description}
-                    onChange={(e) => setNewTender({ ...newTender, description: e.target.value })}
-                    placeholder="Specify requirements like GST, PAN, OEM Authorization, Make in India local content..."
-                  />
-                  <span className="form-hint">
-                    The system will extract initial compliance rules from this scope for officer review.
-                  </span>
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  onClick={() => setShowCreateModal(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={creating}
-                  aria-busy={creating}
-                >
-                  {creating ? 'Publishing…' : 'Publish Tender & Extract Criteria'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

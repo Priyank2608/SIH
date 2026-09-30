@@ -24,7 +24,7 @@ const ADMIN_MODULES = [
   {
     icon: FileText,
     title: 'Tenders Register',
-    desc: 'Create, edit, and manage all GeM tenders. Set requirements and close bids.',
+    desc: 'Create, edit, and manage all tenders. Set requirements and close bids.',
     href: '/tenders',
     tag: 'WRITE',
   },

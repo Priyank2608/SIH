@@ -73,9 +73,13 @@ async def get_current_user(
     return AuthenticatedUser(user.id, user.username, user.full_name, user.role, user.tenant_id)
 
 def require_roles(*allowed_roles: str):
+    """Strict role gate: authorization is granted only to the listed roles.
+
+    NOTE: There is intentionally NO implicit SUPER_ADMIN bypass. Administration
+    authority does not confer procurement decision authority (or any other
+    operational role) unless the role is explicitly listed by the endpoint.
+    """
     def role_checker(user: AuthenticatedUser = Depends(get_current_user)):
-        if "SUPER_ADMIN" == user.role:
-            return user
         if user.role not in allowed_roles:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient operational permissions")
         return user

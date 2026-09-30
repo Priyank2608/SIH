@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, setToken, getToken } from '../../lib/api';
 import BidShieldLogo from '../../components/BidShieldLogo';
@@ -9,6 +9,14 @@ import {
   EyeOff,
   Lock,
   User,
+  FileText,
+  ScanLine,
+  ShieldCheck,
+  AlertOctagon,
+  GitBranch,
+  UserCheck,
+  FileBarChart,
+  MousePointerClick,
 } from 'lucide-react';
 
 /* ── Demo accounts ─────────────────────────────────────────── */
@@ -20,14 +28,15 @@ const DEMO_ACCOUNTS = [
 ];
 const showDemoAccounts = process.env.NEXT_PUBLIC_DEMO_MODE !== 'false';
 
-/* Evidence workflow trace — Submission → Decision */
-const WORKFLOW_STEPS = [
-  'Submission',
-  'OCR',
-  'Verification',
-  'Compliance',
-  'Review',
-  'Decision',
+/* Flip-card back: concise product capability list */
+const CAPABILITIES = [
+  { icon: FileText,      label: 'Tender Analysis' },
+  { icon: ScanLine,      label: 'Document OCR' },
+  { icon: ShieldCheck,   label: 'Compliance Verification' },
+  { icon: AlertOctagon,  label: 'Risk Intelligence' },
+  { icon: GitBranch,     label: 'Evidence Lineage' },
+  { icon: UserCheck,     label: 'Officer Review' },
+  { icon: FileBarChart,  label: 'Formal Reports' },
 ];
 
 export default function LoginPage() {
@@ -38,8 +47,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expired, setExpired] = useState(false);
-  const [activeStep, setActiveStep] = useState(2);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [flipped, setFlipped] = useState(false);
 
   useEffect(() => {
     if (getToken()) { router.replace('/'); return; }
@@ -48,11 +56,6 @@ export default function LoginPage() {
       setExpired(true);
       window.history.replaceState(null, '', '/login');
     }
-    // Advance the evidence trace while idle — a living pipeline, not decoration
-    timerRef.current = setInterval(() => {
-      setActiveStep(prev => (prev + 1) % WORKFLOW_STEPS.length);
-    }, 2200);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [router]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -80,7 +83,7 @@ export default function LoginPage() {
 
   return (
     <div className="login-root" role="main">
-      {/* ── Left: ink operations wall ─────────────────────────────────── */}
+      {/* ── Left: interactive information panel ─────────────────────── */}
       <div className="login-left">
         <div className="login-brand">
           <div className="login-mark">
@@ -95,52 +98,60 @@ export default function LoginPage() {
           <div className="login-restricted-pill">
             Authorized Access Only
           </div>
+        </div>
 
-          <h1 className="login-headline">
-            Procurement
-            <br />
-            <span className="login-headline-accent">Intelligence</span>
-            <br />
-            Console
-          </h1>
-
-          <p className="login-subheadline">
-            Evidence-backed review of GeM bid submissions for authorized
-            procurement officers, verification officers, and auditors.
-            Every finding is traceable to a document, a field, and a rule.
-          </p>
-
-          {/* Evidence trace — pipeline visual */}
-          <div className="login-workflow" aria-hidden="true">
-            <div className="login-workflow-track">
-              {WORKFLOW_STEPS.map((step, i) => (
-                <React.Fragment key={step}>
-                  {i > 0 && (
-                    <div
-                      className={`login-workflow-line${
-                        i <= activeStep ? ' active' : ''
-                      }`}
-                    />
-                  )}
-                  <div
-                    className={`login-workflow-dot${
-                      i === activeStep ? ' active' : i < activeStep ? ' passed' : ''
-                    }`}
-                  />
-                </React.Fragment>
-              ))}
+        {/* 3D flip card — front: brand statement · back: capabilities.
+            Hover flips on desktop; click/tap and keyboard toggle everywhere.
+            The login form never depends on the card being revealed. */}
+        <div
+          className={`flip-scene${flipped ? ' is-flipped' : ''}`}
+          onMouseEnter={() => setFlipped(true)}
+          onMouseLeave={() => setFlipped(false)}
+        >
+          <div
+            className="flip-card"
+            role="button"
+            tabIndex={0}
+            aria-pressed={flipped}
+            aria-label={`BidShield product information card — ${flipped ? 'showing capabilities' : 'showing overview'}. Activate to flip.`}
+            onClick={() => setFlipped(f => !f)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setFlipped(f => !f);
+              }
+            }}
+          >
+            {/* FRONT */}
+            <div className="flip-face flip-front" aria-hidden={flipped}>
+              <div className="flip-front-logo">
+                <BidShieldLogo size={56} variant="compact" onDark />
+              </div>
+              <h1 className="flip-front-title">BIDSHIELD</h1>
+              <p className="flip-front-statement">
+                AI-Assisted Procurement
+                <br />
+                Compliance Intelligence
+              </p>
+              <span className="flip-hint" aria-hidden="true">
+                <MousePointerClick size={12} />
+                Hover or tap for capabilities
+              </span>
             </div>
-            <div className="login-workflow-steps">
-              {WORKFLOW_STEPS.map((step, i) => (
-                <span
-                  key={step}
-                  className={`login-workflow-step-name${
-                    i === activeStep ? ' active' : i < activeStep ? ' passed' : ''
-                  }`}
-                >
-                  {step}
-                </span>
-              ))}
+
+            {/* BACK */}
+            <div className="flip-face flip-back" aria-hidden={!flipped}>
+              <div className="flip-back-title">BidShield Capabilities</div>
+              <ul className="flip-capability-list">
+                {CAPABILITIES.map(({ icon: Icon, label }) => (
+                  <li key={label} className="flip-capability-item">
+                    <span className="flip-capability-icon">
+                      <Icon size={14} aria-hidden="true" />
+                    </span>
+                    <span className="flip-capability-label">{label}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </div>
@@ -148,13 +159,13 @@ export default function LoginPage() {
         {/* Bottom meta */}
         <p className="login-meta">
           <b>Session notice.</b> All sign-ins, reviews, and decisions are
-          recorded in a tamper-evident audit chain. BidShield is an internal
-          evaluation platform — it is not an official Government
-          e-Marketplace (GeM) product.
+          recorded in a tamper-evident audit chain. BidShield is an independent
+          AI-assisted procurement compliance platform — it is not an official
+          government marketplace product.
         </p>
       </div>
 
-      {/* ── Right: paper registry panel ───────────────────────────────── */}
+      {/* ── Right: sign-in panel ────────────────────────────────────── */}
       <div className="login-right">
         <div className="login-auth-eyebrow">Secure Access</div>
         <h2 className="login-auth-title">Officer Sign-In</h2>
@@ -303,7 +314,8 @@ export default function LoginPage() {
 
         <p className="login-disclaimer">
           Access restricted to authorized BidShield evaluation personnel.
-          Unauthorized access is prohibited. Not an official GeM product.
+          Unauthorized access is prohibited. BidShield is an independent
+          platform and is not affiliated with any government marketplace.
         </p>
       </div>
     </div>

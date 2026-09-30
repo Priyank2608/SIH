@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.entities import Bidder, BidderDocument, OCRResult, VerificationResult, ProviderConfig
 from app.schemas.schemas import ProviderConfigOut
-from app.core.security import get_current_user, AuthenticatedUser
+from app.core.security import get_current_user, require_roles, AuthenticatedUser
 from app.services.verification_service import run_verification_for_document
 from app.services.audit_service import log_audit_event
 from app.services.tenant_service import get_tenant_document
@@ -58,7 +58,7 @@ def list_verification_records(
 def retry_verification(
     document_id: int,
     db: Session = Depends(get_db),
-    user: AuthenticatedUser = Depends(get_current_user)
+    user: AuthenticatedUser = Depends(require_roles("VERIFICATION_OFFICER", "PROCUREMENT_OFFICER"))
 ):
     get_tenant_document(db, document_id, user.tenant_id)
     res = run_verification_for_document(db, document_id, user.id, user.username)

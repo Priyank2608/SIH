@@ -10,7 +10,7 @@ from sqlalchemy import or_
 from app.db.session import get_db
 from app.models.entities import BidderDocument, OCRResult, VerificationResult, Bidder, Tender
 from app.schemas.schemas import BidderDocumentOut, OCRResultOut, VerificationResultOut
-from app.core.security import get_current_user, AuthenticatedUser
+from app.core.security import get_current_user, require_roles, AuthenticatedUser
 from app.services.ocr_service import run_ocr_for_document
 from app.services.verification_service import run_verification_for_document
 from app.services.audit_service import log_audit_event
@@ -125,7 +125,7 @@ def stream_document_file(id: int, db: Session = Depends(get_db), user: Authentic
 def trigger_ocr(
     id: int,
     db: Session = Depends(get_db),
-    user: AuthenticatedUser = Depends(get_current_user)
+    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER", "VERIFICATION_OFFICER"))
 ):
     get_tenant_document(db, id, user.tenant_id)
     try:
@@ -138,7 +138,7 @@ def trigger_ocr(
 def trigger_verify(
     id: int,
     db: Session = Depends(get_db),
-    user: AuthenticatedUser = Depends(get_current_user)
+    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER", "VERIFICATION_OFFICER"))
 ):
     get_tenant_document(db, id, user.tenant_id)
     try:
@@ -154,7 +154,7 @@ async def upload_document(
     tender_id: Optional[int] = Form(None),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    user: AuthenticatedUser = Depends(get_current_user)
+    user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER"))
 ):
     max_bytes = settings.max_upload_mb * 1024 * 1024
     content = await file.read(max_bytes + 1)

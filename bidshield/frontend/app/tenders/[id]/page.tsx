@@ -1,8 +1,9 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import StatusBadge from '../../../components/StatusBadge';
+import BulkBidderUpload from '../../../components/BulkBidderUpload';
 import OCRInspectorModal from '../../../components/OCRInspectorModal';
 import DecisionModal from '../../../components/DecisionModal';
 import EvidenceModal from '../../../components/EvidenceModal';
@@ -10,6 +11,7 @@ import PermissionGate from '../../../components/PermissionGate';
 import { api, downloadFile, API_BASE } from '../../../lib/api';
 import { useCurrentUser } from '../../../lib/userContext';
 import { can } from '../../../lib/permissions';
+import { Users, Upload as UploadIcon } from 'lucide-react';
 
 type TabKey =
   | 'OVERVIEW'
@@ -59,6 +61,18 @@ export default function TenderWorkspacePage() {
     requirement_type: 'MANDATORY',
     description: '',
   });
+
+  // Tender document upload (officer action)
+  const tenderPdfInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+
+  // Bidder enrollment (bid intake entry point)
+  const [showEnroll, setShowEnroll] = useState(false);
+  const [enrollForm, setEnrollForm] = useState({ legal_name: '', pan: '', gstin: '' });
+  const [enrolling, setEnrolling] = useState(false);
+
+  // Bulk bid-document intake (Documents tab) — reset selection when switching away
+  const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
 
   async function loadTender() {
     try {
@@ -168,6 +182,55 @@ export default function TenderWorkspacePage() {
     }
   };
 
+  // Tender document upload — validates and stores the official tender PDF.
+  const handleTenderPdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+      alert('Only PDF tender documents are accepted.');
+      e.target.value = '';
+      return;
+    }
+    try {
+      setUploadingPdf(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      await api(`/tenders/${id}/pdf`, { method: 'POST', body: formData });
+      // Offer requirement extraction from the freshly stored document.
+      try { await api(`/tenders/${id}/extract-requirements`, { method: 'POST' }); } catch { /* officer can re-run manually */ }
+      await loadTender();
+    } catch (err: any) {
+      alert(err.message || 'Tender document upload failed');
+    } finally {
+      setUploadingPdf(false);
+      if (tenderPdfInputRef.current) tenderPdfInputRef.current.value = '';
+    }
+  };
+
+  // Bidder enrollment — creates the bidder shell and attaches it to this tender.
+  const handleEnrollBidder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setEnrolling(true);
+      await api('/bidders', {
+        method: 'POST',
+        body: JSON.stringify({
+          tender_id: parseInt(id as string),
+          legal_name: enrollForm.legal_name.trim(),
+          pan: enrollForm.pan.trim() || undefined,
+          gstin: enrollForm.gstin.trim() || undefined,
+        }),
+      });
+      setShowEnroll(false);
+      setEnrollForm({ legal_name: '', pan: '', gstin: '' });
+      await loadTender();
+    } catch (err: any) {
+      alert(err.message || 'Failed to enroll bidder');
+    } finally {
+      setEnrolling(false);
+    }
+  };
+
   // Generate Reports
   const handleGenerateQuickReport = async () => {
     try {
@@ -238,13 +301,39 @@ export default function TenderWorkspacePage() {
             </p>
           </div>
           <div className="page-actions">
-            <button
-              className="btn btn-outline"
-              onClick={handleExtractReqs}
-              disabled={extractingReqs}
-            >
-              {extractingReqs ? 'Extracting…' : 'Re-extract Requirements'}
-            </button>
+            {can(userRole, 'tender.edit') && (
+              <>
+                <input
+                  ref={tenderPdfInputRef}
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  style={{ display: 'none' }}
+                  onChange={handleTenderPdfUpload}
+                  aria-hidden="true"
+                />
+                <button
+                  className="btn btn-outline"
+                  onClick={() => tenderPdfInputRef.current?.click()}
+                  disabled={uploadingPdf}
+                  title={tender.pdf_filename ? `Replace tender document (current: ${tender.pdf_filename})` : 'Upload the complete tender document (PDF)'}
+                >
+                  {uploadingPdf ? 'Uploading…' : tender.pdf_filename ? 'Replace Tender Document' : 'Upload Tender Document'}
+                </button>
+                <button
+                  className="btn btn-outline"
+                  onClick={handleExtractReqs}
+                  disabled={extractingReqs}
+                >
+                  {extractingReqs ? 'Extracting…' : 'Re-extract Requirements'}
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setShowEnroll(true)}
+                >
+                  + Enroll Bidder
+                </button>
+              </>
+            )}
             <button
               className="btn btn-primary"
               onClick={handleGenerateQuickReport}
@@ -267,10 +356,14 @@ export default function TenderWorkspacePage() {
           aria-label="Tender reference details"
         >
           <span>Tender&nbsp;<b style={{ color: 'var(--text-primary)' }}>{tender.tender_ref}</b></span>
-          {tender.gem_ref && <span>GeM&nbsp;<b style={{ color: 'var(--text-primary)' }}>{tender.gem_ref}</b></span>}
           <span>Status&nbsp;<StatusBadge status={tender.status} size="sm" /></span>
           <span>Value&nbsp;<b style={{ color: 'var(--text-primary)', fontWeight: 500 }}>₹{tender.estimated_value_cr} Cr</b></span>
           <span>Closing&nbsp;<b style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{tender.closing_date}</b></span>
+          <span>
+            Tender Document&nbsp;<b style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+              {tender.pdf_filename || 'Not uploaded yet'}
+            </b>
+          </span>
         </div>
 
         {/* Working tabs */}
@@ -339,6 +432,22 @@ export default function TenderWorkspacePage() {
                   </tr>
                 </thead>
                 <tbody>
+                  {tender.bidders?.length === 0 && (
+                    <tr>
+                      <td colSpan={6}>
+                        <div className="state-wrapper" style={{ padding: '26px 24px' }}>
+                          <Users size={26} className="state-icon" aria-hidden="true" />
+                          <div className="state-title">No bidder submissions uploaded yet</div>
+                          <div className="state-desc">Enroll bidders and upload their documents to begin scrutiny.</div>
+                          {can(userRole, 'tender.edit') && (
+                            <button className="btn btn-primary btn-sm" style={{ marginTop: '12px' }} onClick={() => setShowEnroll(true)}>
+                              + Enroll First Bidder
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
                   {tender.bidders?.map((b: any) => (
                     <tr key={b.id}>
                       <td>
@@ -555,10 +664,25 @@ export default function TenderWorkspacePage() {
                       <th>Officer Decision</th>
                       <th>Actions</th>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {tender.bidders?.map((b: any) => (
-                      <tr key={b.id}>
+                  </thead>                <tbody>
+                  {tender.bidders?.length === 0 && (
+                    <tr>
+                      <td colSpan={7}>
+                        <div className="state-wrapper" style={{ padding: '26px 24px' }}>
+                          <Users size={26} className="state-icon" aria-hidden="true" />
+                          <div className="state-title">No bidder submissions uploaded yet</div>
+                          <div className="state-desc">Enroll a bidder, then upload their bid documents from the bidder dossier.</div>
+                          {can(userRole, 'tender.edit') && (
+                            <button className="btn btn-primary btn-sm" style={{ marginTop: '12px' }} onClick={() => setShowEnroll(true)}>
+                              + Enroll First Bidder
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  {tender.bidders?.map((b: any) => (
+                  <tr key={b.id}>
                         <td>
                           <Link href={`/bidders/${b.id}?tender=${tender.id}`} className="font-semibold text-main">
                             {b.legal_name}
@@ -584,7 +708,7 @@ export default function TenderWorkspacePage() {
                             <button
                               className="btn btn-sm btn-outline"
                               onClick={() => setDecisionModal({ open: true, bidderId: b.id, bidderName: b.legal_name, currentDecision: b.final_decision })}
-                              disabled={!['PROCUREMENT_OFFICER', 'SYSTEM_ADMIN'].includes(userRole)}
+                              disabled={!can(userRole, 'decision.create')}
                             >
                               Record Decision
                             </button>
@@ -613,7 +737,36 @@ export default function TenderWorkspacePage() {
                 <span className="section-title">Tender Document Repository</span>
                 <div className="section-sub">Versioned bidder submissions with SHA-256 content hashes</div>
               </div>
+              <div className="section-actions">
+                {can(userRole, 'document.upload') && (tender.bidders?.length ?? 0) > 0 && (
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => setBulkUploadOpen(v => !v)}
+                    aria-expanded={bulkUploadOpen}
+                    aria-controls="bulk-upload-workspace"
+                  >
+                    {bulkUploadOpen ? 'Close Bulk Upload' : 'Bulk Upload Documents'}
+                  </button>
+                )}
+              </div>
             </div>
+
+            {/* Bulk bid-document intake — group files by bidder with live per-bidder status */}
+            {bulkUploadOpen && can(userRole, 'document.upload') && (
+              <div id="bulk-upload-workspace" className="card" style={{ padding: '16px', marginBottom: '18px' }}>
+                <div className="section-header section-header-soft" style={{ marginBottom: '10px' }}>
+                  <div>
+                    <span className="section-title">Bulk Bid Intake</span>
+                    <div className="section-sub">Drop PDFs for multiple bidders at once — files are grouped per bidder with live upload status</div>
+                  </div>
+                </div>
+                <BulkBidderUpload
+                  bidders={(tender.bidders || []).map((b: any) => ({ id: b.id, legal_name: b.legal_name }))}
+                  tenderId={tender.id}
+                  onComplete={loadTender}
+                />
+              </div>
+            )}
 
             <div className="table-wrapper">
               <table className="data-table">
@@ -630,6 +783,22 @@ export default function TenderWorkspacePage() {
                     </tr>
                   </thead>
                   <tbody>
+                    {tenderDocs.length === 0 && (
+                      <tr>
+                        <td colSpan={8}>
+                          <div className="state-wrapper" style={{ padding: '24px' }}>
+                            <UploadIcon size={24} className="state-icon" aria-hidden="true" />
+                            <div className="state-title">No bidder documents have been uploaded</div>
+                            <div className="state-desc">Upload bid documents from each bidder&apos;s dossier after enrollment.</div>
+                            {can(userRole, 'document.upload') && (tender.bidders?.length ?? 0) > 0 && (
+                              <button className="btn btn-primary btn-sm" style={{ marginTop: '12px' }} onClick={() => setBulkUploadOpen(true)}>
+                                Bulk Upload Bid Documents
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                     {tenderDocs.map((doc: any) => (
                       <tr key={doc.id}>
                         <td className="font-mono">#{doc.id}</td>
@@ -1038,6 +1207,66 @@ export default function TenderWorkspacePage() {
             bidderName={evidenceModal.bidderName}
             onClose={() => setEvidenceModal(null)}
           />
+        )}
+
+        {/* Bidder enrollment modal — bid intake entry point */}
+        {showEnroll && (
+          <div className="modal-overlay" onClick={() => setShowEnroll(false)}>
+            <div className="modal-container modal-md" role="dialog" aria-modal="true" aria-label="Enroll bidder" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <div>
+                  <div className="modal-pretitle">Bid Intake</div>
+                  <h2 className="modal-title">Enroll Bidder</h2>
+                </div>
+                <button className="btn-close" onClick={() => setShowEnroll(false)} aria-label="Close dialog">×</button>
+              </div>
+              <form onSubmit={handleEnrollBidder}>
+                <div className="modal-body">
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="en-name">
+                      Bidder / Company Legal Name <span aria-hidden="true" style={{ color: 'var(--danger)' }}>*</span>
+                    </label>
+                    <input
+                      id="en-name" type="text" className="form-input"
+                      value={enrollForm.legal_name}
+                      onChange={(e) => setEnrollForm({ ...enrollForm, legal_name: e.target.value })}
+                      placeholder="e.g. Company A Private Limited"
+                      required aria-required="true" maxLength={250}
+                    />
+                    <span className="form-hint">
+                      Statutory identifiers can be captured later from OCR&apos;d documents during officer review.
+                    </span>
+                  </div>
+                  <div className="grid-2">
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="en-pan">PAN (if known)</label>
+                      <input
+                        id="en-pan" type="text" className="form-input"
+                        value={enrollForm.pan}
+                        onChange={(e) => setEnrollForm({ ...enrollForm, pan: e.target.value })}
+                        maxLength={20}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="en-gstin">GSTIN (if known)</label>
+                      <input
+                        id="en-gstin" type="text" className="form-input"
+                        value={enrollForm.gstin}
+                        onChange={(e) => setEnrollForm({ ...enrollForm, gstin: e.target.value })}
+                        maxLength={20}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-outline" onClick={() => setShowEnroll(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={enrolling} aria-busy={enrolling}>
+                    {enrolling ? 'Enrolling…' : 'Enroll Bidder'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         )}
       </main>
   );

@@ -11,6 +11,7 @@ import {
   ChevronRight,
   RefreshCw,
   FileSearch,
+  FileScan,
 } from 'lucide-react';
 
 /* ================================================================
@@ -19,18 +20,31 @@ import {
    ================================================================ */
 export default function VerificationDashboard() {
   const { data: verifications = [], loading, error, mutate: refresh } = useApi<any[]>('/verification');
-  const [retrying, setRetrying] = useState<number | null>(null);
+  const [busyDoc, setBusyDoc] = useState<number | null>(null);
   const [filter, setFilter] = useState<string>('ALL');
 
   const handleRetry = async (docId: number) => {
     try {
-      setRetrying(docId);
+      setBusyDoc(docId);
       await api(`/verification/${docId}/retry`, { method: 'POST' });
       await refresh(true);
     } catch {
       // status shown via re-fetch
     } finally {
-      setRetrying(null);
+      setBusyDoc(null);
+    }
+  };
+
+  // Trigger real OCR extraction for a document that has no OCR result yet.
+  const handleRunOcr = async (docId: number) => {
+    try {
+      setBusyDoc(docId);
+      await api(`/documents/${docId}/ocr`, { method: 'POST' });
+      await refresh(true);
+    } catch {
+      // status shown via re-fetch
+    } finally {
+      setBusyDoc(null);
     }
   };
 
@@ -38,6 +52,13 @@ export default function VerificationDashboard() {
   const total    = verifications.length;
   const verified = verifications.filter(v => v.verification_status === 'VERIFIED').length;
   const pending  = verifications.filter(v => v.verification_status === 'PENDING').length;
+
+  // OCR extraction figures — read straight from the live /verification payload
+  const ocrPendingDocs = verifications.filter(v => v.ocr_status === 'PENDING');
+  const ocrPending = ocrPendingDocs.length;
+  const lowConfidence = verifications.filter(v =>
+    v.ocr_status === 'COMPLETED' && typeof v.ocr_confidence === 'number' && v.ocr_confidence < 0.6
+  ).length;
   const manual   = verifications.filter(v => v.verification_status === 'MANUAL_REVIEW').length;
   const mismatch = verifications.filter(v => v.verification_status === 'MISMATCH').length;
   const expired  = verifications.filter(v => v.verification_status === 'EXPIRED').length;
@@ -125,10 +146,10 @@ export default function VerificationDashboard() {
           <div className="metric-label">Retry Required</div>
           <div className="metric-change">Gateway failures</div>
         </div>
-        <div className="metric-cell">
-          <div className="metric-value">{loading ? '…' : pending}</div>
-          <div className="metric-label">Pending</div>
-          <div className="metric-change">In queue</div>
+        <div className={`metric-cell${ocrPending > 0 ? ' alert' : ''}`}>
+          <div className="metric-value">{loading ? '…' : ocrPending}</div>
+          <div className="metric-label">Awaiting OCR</div>
+          <div className="metric-change">No extraction result yet</div>
         </div>
       </div>
 
@@ -141,7 +162,7 @@ export default function VerificationDashboard() {
         <div className="pipeline" aria-label="Verification pipeline">
           {[
             { label: 'Submitted',     count: total,           status: 'default' },
-            { label: 'OCR Extracted', count: total - pending, status: 'default' },
+            { label: 'OCR Extracted', count: total - ocrPending, status: 'default' },
             { label: 'Verified',      count: verified,        status: 'done' },
             { label: 'Manual Review', count: manual,          status: manual > 0 ? 'active' : 'default' },
             { label: 'Retry',         count: retry,           status: retry  > 0 ? 'error' : 'default' },
@@ -153,6 +174,78 @@ export default function VerificationDashboard() {
           ))}
         </div>
       </div>
+
+      {/* OCR intake — real extraction status straight from /verification */}
+      {ocrPendingDocs.length > 0 && (
+        <div style={{ marginBottom: '20px' }}>
+          <div className="section-header section-header-soft">
+            <div>
+              <span className="section-title">OCR Intake</span>
+              <div className="section-sub">Documents awaiting text extraction — verification cannot run until OCR completes</div>
+            </div>
+            <div className="section-actions">
+              {lowConfidence > 0 && (
+                <span className="status-badge badge-warning size-sm">{lowConfidence} low confidence</span>
+              )}
+              <span className="status-badge badge-neutral size-sm">{ocrPendingDocs.length}</span>
+            </div>
+          </div>
+          <div className="table-wrapper">
+            <table className="data-table" aria-label="Documents awaiting OCR extraction">
+              <thead>
+                <tr>
+                  <th>Document</th>
+                  <th>Bidder</th>
+                  <th>Doc Type</th>
+                  <th>Filename</th>
+                  <th>OCR Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ocrPendingDocs.slice(0, 8).map((v: any) => (
+                  <tr key={`ocr-${v.document_id}`}>
+                    <td><span className="mono td-mono" style={{ fontWeight: 500 }}>DOC-{String(v.document_id).padStart(4, '0')}</span></td>
+                    <td><span className="td-primary">{v.bidder_name || `Bidder #${v.bidder_id}`}</span></td>
+                    <td className="td-muted" style={{ fontSize: '12px' }}>{v.document_type}</td>
+                    <td className="td-muted td-truncate" style={{ fontSize: '12px', maxWidth: '220px' }}>{v.filename}</td>
+                    <td>
+                      <span className="status-badge badge-neutral size-sm">Pending extraction</span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <button
+                          className="btn btn-outline btn-sm"
+                          onClick={() => handleRunOcr(v.document_id)}
+                          disabled={busyDoc === v.document_id}
+                          aria-label={`Run OCR extraction for document ${v.document_id}`}
+                          title="Run OCR extraction"
+                        >
+                          <FileScan size={11} aria-hidden="true" className={busyDoc === v.document_id ? 'animate-spin' : ''} />
+                          {busyDoc === v.document_id ? 'Extracting…' : 'Run OCR'}
+                        </button>
+                        <Link
+                          href={`/bidders/${v.bidder_id}?tender=1`}
+                          className="btn btn-ghost btn-sm btn-icon"
+                          aria-label="Open bidder dossier"
+                          title="Open dossier"
+                        >
+                          <ChevronRight size={13} aria-hidden="true" />
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {ocrPendingDocs.length > 8 && (
+              <div className="table-footer">
+                Showing 8 of {ocrPendingDocs.length} awaiting OCR — run extraction to move them into the queue
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="alert alert-warning mb-4" role="alert">
@@ -190,7 +283,7 @@ export default function VerificationDashboard() {
               <th>Doc Type</th>
               <th>Version</th>
               <th>Status</th>
-              <th>Confidence</th>
+              <th>OCR Confidence</th>
               <th>Last Checked</th>
               <th>Action</th>
             </tr>
@@ -215,8 +308,8 @@ export default function VerificationDashboard() {
               </tr>
             )}
             {displayed.map((v: any) => (
-              <tr key={v.id}>
-                <td><span className="mono td-mono" style={{ fontWeight: 500 }}>DOC-{String(v.id).padStart(4, '0')}</span></td>
+              <tr key={v.document_id}>
+                <td><span className="mono td-mono" style={{ fontWeight: 500 }}>DOC-{String(v.document_id).padStart(4, '0')}</span></td>
                 <td><span className="td-primary">{v.bidder_name || `Bidder #${v.bidder_id}`}</span></td>
                 <td className="td-muted" style={{ fontSize: '12px' }}>{v.document_type}</td>
                 <td>
@@ -224,17 +317,22 @@ export default function VerificationDashboard() {
                 </td>
                 <td><StatusBadge status={v.verification_status} size="sm" /></td>
                 <td>
-                  {v.confidence_score !== undefined && v.confidence_score !== null ? (
-                    <span className="mono td-mono" style={{ fontWeight: 500, color: confColor(v.confidence_score) }}>
-                      {(v.confidence_score * 100).toFixed(0)}%
+                  {v.ocr_status !== 'COMPLETED' ? (
+                    <span className="td-muted" style={{ fontSize: '12px' }}>Awaiting OCR</span>
+                  ) : typeof v.ocr_confidence === 'number' ? (
+                    <span className="mono td-mono" style={{ fontWeight: 500, color: confColor(v.ocr_confidence) }}>
+                      {(v.ocr_confidence * 100).toFixed(0)}%
+                      {v.ocr_confidence < 0.6 && (
+                        <span className="status-badge badge-warning size-sm" style={{ marginLeft: '6px' }}>Low</span>
+                      )}
                     </span>
                   ) : (
                     <span className="td-muted" style={{ fontSize: '12px' }}>—</span>
                   )}
                 </td>
                 <td className="td-mono td-muted" style={{ whiteSpace: 'nowrap' }}>
-                  {v.updated_at
-                    ? new Date(v.updated_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+                  {v.last_verified_at
+                    ? new Date(v.last_verified_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
                     : '—'}
                 </td>
                 <td>
@@ -242,13 +340,13 @@ export default function VerificationDashboard() {
                     {['RETRY_REQUIRED', 'PENDING', 'MANUAL_REVIEW', 'MISMATCH'].includes(v.verification_status) && (
                       <button
                         className="btn btn-outline btn-sm"
-                        onClick={() => handleRetry(v.id)}
-                        disabled={retrying === v.id}
-                        aria-label={`Retry verification for document ${v.id}`}
+                        onClick={() => handleRetry(v.document_id)}
+                        disabled={busyDoc === v.document_id}
+                        aria-label={`Retry verification for document ${v.document_id}`}
                         title="Retry verification"
                       >
-                        <RefreshCw size={11} aria-hidden="true" className={retrying === v.id ? 'animate-spin' : ''} />
-                        {retrying === v.id ? 'Retrying…' : 'Retry'}
+                        <RefreshCw size={11} aria-hidden="true" className={busyDoc === v.document_id ? 'animate-spin' : ''} />
+                        {busyDoc === v.document_id ? 'Retrying…' : 'Retry'}
                       </button>
                     )}
                     <Link

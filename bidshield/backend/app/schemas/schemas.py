@@ -169,6 +169,28 @@ class HistoricalContractOut(BaseModel):
     similarity_score: float
     quality_records: List[QualityRecordOut] = []
 
+class BidderCreate(BaseModel):
+    """Officer bid-intake payload: bidder shell + tender enrollment.
+
+    Only legal_name and tender_id are required; statutory identifiers may be
+    captured later from OCR'd documents during officer review.
+    """
+    tender_id: int
+    legal_name: str = Field(min_length=2, max_length=250)
+    trade_name: Optional[str] = None
+    pan: Optional[str] = Field(default=None, max_length=20)
+    gstin: Optional[str] = Field(default=None, max_length=20)
+    cin: Optional[str] = Field(default=None, max_length=30)
+    udyam_number: Optional[str] = Field(default=None, max_length=50)
+    enterprise_type: Optional[str] = Field(default=None, max_length=50)
+    is_startup: Optional[bool] = False
+    address: Optional[str] = None
+    state: Optional[str] = None
+    district: Optional[str] = None
+    contact_email: Optional[str] = Field(default=None, max_length=150)
+    contact_phone: Optional[str] = Field(default=None, max_length=50)
+    contact_person: Optional[str] = Field(default=None, max_length=150)
+
 # Compliance
 class ComplianceResultOut(BaseModel):
     id: int

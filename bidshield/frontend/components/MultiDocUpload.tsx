@@ -103,34 +103,44 @@ export default function MultiDocUpload({ bidderId, tenderId, onComplete }: Props
 
     setIsProcessing(true);
 
-    for (const item of toProcess) {
-      // Mark as uploading
-      setQueue(prev => prev.map(f => f.id === item.id ? { ...f, status: 'uploading' } : f));
+    // Bounded-concurrency worker pool: keeps the UI responsive for large
+    // batches (hundreds of files) without hammering the backend with one
+    // synchronous flood of requests.
+    const CONCURRENCY = 3;
+    let cursor = 0;
 
-      try {
-        const formData = new FormData();
-        formData.append('bidder_id', String(bidderId));
-        formData.append('document_type', item.documentType);
-        if (tenderId) formData.append('tender_id', String(tenderId));
-        formData.append('file', item.file);
+    const worker = async () => {
+      while (cursor < toProcess.length) {
+        const item = toProcess[cursor++];
+        setQueue(prev => prev.map(f => f.id === item.id ? { ...f, status: 'uploading' } : f));
 
-        const result = await api('/documents/upload', {
-          method: 'POST',
-          body: formData,
-        });
-        setQueue(prev => prev.map(f =>
-          f.id === item.id
-            ? { ...f, status: 'success', resultDocId: result.document_id }
-            : f
-        ));
-      } catch (err: any) {
-        setQueue(prev => prev.map(f =>
-          f.id === item.id
-            ? { ...f, status: 'error', error: err.message || 'Upload failed' }
-            : f
-        ));
+        try {
+          const formData = new FormData();
+          formData.append('bidder_id', String(bidderId));
+          formData.append('document_type', item.documentType);
+          if (tenderId) formData.append('tender_id', String(tenderId));
+          formData.append('file', item.file);
+
+          const result = await api('/documents/upload', {
+            method: 'POST',
+            body: formData,
+          });
+          setQueue(prev => prev.map(f =>
+            f.id === item.id
+              ? { ...f, status: 'success', resultDocId: result.document_id }
+              : f
+          ));
+        } catch (err: any) {
+          setQueue(prev => prev.map(f =>
+            f.id === item.id
+              ? { ...f, status: 'error', error: err.message || 'Upload failed' }
+              : f
+          ));
+        }
       }
-    }
+    };
+
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, toProcess.length) }, worker));
 
     setIsProcessing(false);
     onComplete?.();
@@ -179,7 +189,7 @@ export default function MultiDocUpload({ bidderId, tenderId, onComplete }: Props
           {isDragging ? 'Drop files here…' : 'Drag PDF files here or click to browse'}
         </p>
         <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0' }}>
-          Only PDF documents accepted · Max {process.env.NEXT_PUBLIC_MAX_UPLOAD_MB || '10'} MB per file
+          Only PDF documents accepted · Max {process.env.NEXT_PUBLIC_MAX_UPLOAD_MB || '10'} MB per file · Processed 3 at a time
         </p>
       </div>
 

@@ -5,7 +5,7 @@ import AppShellWrapper from '../components/AppShellWrapper';
 export const metadata: Metadata = {
   title: 'BidShield — Procurement Review Console',
   description:
-    'Evidence-backed review console for Government e-Marketplace bid verification. Authorized procurement, verification, and audit personnel only.',
+    'BidShield — AI-Assisted Procurement Compliance Platform. Evidence-backed review console for authorized procurement, verification, and audit personnel only.',
   icons: {
     icon: [
       { url: '/icon.svg', type: 'image/svg+xml' },
