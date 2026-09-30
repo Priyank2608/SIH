@@ -5,7 +5,7 @@ import base64
 import re
 from datetime import datetime, timezone
 from typing import Optional, List
-from xml.sax.saxutils import escape
+from app.core.sanitize import escape_text as escape
 from sqlalchemy.orm import Session
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors

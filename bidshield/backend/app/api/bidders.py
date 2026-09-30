@@ -29,7 +29,7 @@ def create_bidder_with_submission(
     bidder shell (identifiers filled from documents later during OCR review)
     and enrolls it against the tender so documents can be uploaded in bulk.
     """
-    get_tenant_tender(db, payload.tender_id, user.tenant_id)
+    get_tenant_tender(db, payload.tender_id, user.tenant_id, user=user)
 
     existing = db.query(Bidder).filter(
         Bidder.tenant_id == user.tenant_id,
@@ -153,7 +153,7 @@ def list_bidders(db: Session = Depends(get_db), user: AuthenticatedUser = Depend
 
 @router.get("/{id}", response_model=BidderDetailOut)
 def get_bidder_360(id: int, tender: Optional[int] = None, db: Session = Depends(get_db), user: AuthenticatedUser = Depends(get_current_user)):
-    b = get_tenant_bidder(db, id, user.tenant_id)
+    b = get_tenant_bidder(db, id, user.tenant_id, user=user)
     if tender is not None:
         get_tenant_tender(db, tender, user.tenant_id)
 
@@ -255,7 +255,7 @@ def get_risk(id: int, tender: int, db: Session = Depends(get_db), user: Authenti
 
 @router.get("/{id}/evidence")
 def get_evidence(id: int, db: Session = Depends(get_db), user: AuthenticatedUser = Depends(get_current_user)):
-    get_tenant_bidder(db, id, user.tenant_id)
+    get_tenant_bidder(db, id, user.tenant_id, user=user)
     return db.query(EvidenceRecord).filter(EvidenceRecord.bidder_id == id).order_by(EvidenceRecord.id.desc()).all()
 
 @router.get("/{id}/audit")

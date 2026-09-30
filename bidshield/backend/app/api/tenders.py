@@ -114,7 +114,7 @@ def create_tender(
 
 @router.get("/{id}", response_model=TenderDetailOut)
 def get_tender(id: int, db: Session = Depends(get_db), user: AuthenticatedUser = Depends(get_current_user)):
-    t = get_tenant_tender(db, id, user.tenant_id)
+    t = get_tenant_tender(db, id, user.tenant_id, user=user, path="/tenders/{id}")
 
     reqs = db.query(TenderRequirement).filter(TenderRequirement.tender_id == t.id).order_by(TenderRequirement.id.asc()).all()
     tbs = (db.query(TenderBidder).join(Bidder, Bidder.id == TenderBidder.bidder_id)
@@ -191,7 +191,7 @@ async def upload_tender_pdf(
     db: Session = Depends(get_db),
     user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER")),
 ):
-    tender = get_tenant_tender(db, id, user.tenant_id)
+    tender = get_tenant_tender(db, id, user.tenant_id, user=user)
     content = await file.read(settings.max_upload_mb * 1024 * 1024 + 1)
     if len(content) > settings.max_upload_mb * 1024 * 1024:
         raise HTTPException(status_code=413, detail=f"File exceeds the {settings.max_upload_mb} MB upload limit")
@@ -266,7 +266,7 @@ def update_requirement(
     db: Session = Depends(get_db),
     user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER"))
 ):
-    get_tenant_tender(db, id, user.tenant_id)
+    get_tenant_tender(db, id, user.tenant_id, user=user)
     req = db.query(TenderRequirement).filter(
         TenderRequirement.id == req_id,
         TenderRequirement.tender_id == id
@@ -370,8 +370,8 @@ def analyze_bidder(
     db: Session = Depends(get_db),
     user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER"))
 ):
-    get_tenant_tender(db, id, user.tenant_id)
-    get_tenant_bidder(db, bidder_id, user.tenant_id)
+    get_tenant_tender(db, id, user.tenant_id, user=user)
+    get_tenant_bidder(db, bidder_id, user.tenant_id, user=user)
     tb = db.query(TenderBidder).filter(
         TenderBidder.tender_id == id,
         TenderBidder.bidder_id == bidder_id
@@ -433,8 +433,8 @@ def record_officer_decision(
     db: Session = Depends(get_db),
     user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER"))
 ):
-    get_tenant_tender(db, id, user.tenant_id)
-    get_tenant_bidder(db, bidder_id, user.tenant_id)
+    get_tenant_tender(db, id, user.tenant_id, user=user)
+    get_tenant_bidder(db, bidder_id, user.tenant_id, user=user)
     tb = db.query(TenderBidder).filter(
         TenderBidder.tender_id == id,
         TenderBidder.bidder_id == bidder_id

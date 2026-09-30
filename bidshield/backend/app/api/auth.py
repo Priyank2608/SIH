@@ -1,18 +1,28 @@
 import base64
 import binascii
 import re
+from datetime import datetime, timezone
 from pydantic import BaseModel, Field
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from PIL import Image
 from io import BytesIO
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.entities import User, Tenant
 from app.schemas.schemas import LoginRequest, TokenResponse, UserOut
-from app.core.security import verify_password, create_access_token, get_current_user, AuthenticatedUser
+from app.core.security import (
+    verify_password, create_access_token, get_current_user, AuthenticatedUser,
+    hash_password, needs_rehash, DUMMY_HASH, validate_password_policy,
+    PASSWORD_POLICY_MESSAGE,
+)
 from app.services.audit_service import log_audit_event
+from app.services import anomaly_service
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
+def datetime_now():
+    return datetime.now(timezone.utc)
 
 class SignatureUpdate(BaseModel):
     signature_data: str = Field(min_length=40, max_length=700000)
@@ -84,15 +94,37 @@ def save_signature(
     return {"saved": True}
 
 @router.post("/login", response_model=TokenResponse)
-def login(req: LoginRequest, db: Session = Depends(get_db)):
+def login(req: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    source_ip = request.client.host if request.client else "0.0.0.0"
+
+    # Layer 2 — account-scoped lockout (username ONLY, never IP). Office NAT,
+    # corporate VPNs, and factory networks share one outbound IP, so an IP-wide
+    # lockout would let one bad password deny service to everyone behind that
+    # gateway. Per-IP rapid-fire limiting is Layer 1's plain rate limiter.
+    expiry = anomaly_service.check_login_lockout(db, req.username, source_ip)
+    if expiry is not None:
+        raise HTTPException(
+            status_code=status.HTTP_423_LOCKED,
+            detail="Account temporarily locked after repeated failed sign-ins. Try again later.",
+            headers={"Retry-After": str(max(1, int((expiry - datetime_now()).total_seconds())) + 1)},
+        )
+
+    # Layer 3 — timing defense: unknown usernames still run a full scrypt
+    # comparison against a fixed dummy hash so response time does not reveal
+    # whether the account exists.
     user = db.query(User).filter(User.username == req.username).first()
-    if not user or not verify_password(req.password, user.hashed_password):
+    stored_hash = user.hashed_password if user else DUMMY_HASH
+    password_ok = verify_password(req.password, stored_hash)
+
+    if not user or not password_ok:
+        anomaly_service.record_login_attempt(db, req.username, successful=False, source_ip=source_ip)
         log_audit_event(
             db,
             action="LOGIN_FAILURE",
             entity_type="USER",
             entity_id=req.username,
             username=req.username,
+            ip_address=source_ip,
             details={"reason": "Invalid credentials provided"}
         )
         raise HTTPException(
@@ -105,6 +137,14 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is inactive. Contact Administrator."
         )
+
+    # Transparent hash upgrade: PBKDF2-era demo accounts migrate to scrypt on
+    # their next successful login.
+    if needs_rehash(user.hashed_password):
+        user.hashed_password = hash_password(req.password)
+        db.commit()
+
+    anomaly_service.record_login_attempt(db, req.username, successful=True, source_ip=source_ip)
 
     token = create_access_token({
         "sub": str(user.id),

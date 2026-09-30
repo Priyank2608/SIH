@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import re
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
@@ -13,20 +14,81 @@ from sqlalchemy.orm import Session
 
 security_bearer = HTTPBearer(auto_error=False)
 
+# ── Layer 3 — Password hashing (memory-hard scrypt) ────────────────────────
+# Format: scrypt$N$r$p$salt_hex$key_hex. Old PBKDF2 hashes ("salt_hex$key_hex")
+# verify on sight and are transparently re-hashed at next successful login so
+# the demo database keeps working without a reset.
+_SCRYPT_N = 2 ** 14
+_SCRYPT_R = 8
+_SCRYPT_P = 1
+
+# A fixed dummy scrypt hash: verify_password compares against it when the
+# username does not exist, so response timing does not leak account existence.
+DUMMY_HASH = "scrypt$16384$8$1$" + secrets.token_hex(16) + "$" + secrets.token_hex(64)
+
+
 def hash_password(password: str, salt: Optional[str] = None) -> str:
-    if not salt:
-        salt = secrets.token_hex(16)
-    key = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 100000)
-    return f"{salt}${key.hex()}"
+    salt_bytes = secrets.token_bytes(16)
+    key = hashlib_scrypt(password, salt_bytes)
+    return f"scrypt${_SCRYPT_N}${_SCRYPT_R}${_SCRYPT_P}${salt_bytes.hex()}${key.hex()}"
+
+
+def hashlib_scrypt(password: str, salt: bytes) -> bytes:
+    return hashlib.scrypt(password.encode("utf-8"), salt=salt,
+                          n=_SCRYPT_N, r=_SCRYPT_R, p=_SCRYPT_P, dklen=64)
+
+
+def _is_legacy_pbkdf2(stored_hash: str) -> bool:
+    return "$" in stored_hash and not stored_hash.startswith("scrypt$")
+
 
 def verify_password(plain_password: str, stored_hash: str) -> bool:
     try:
-        salt, key_hex = stored_hash.split("$", 1)
-        expected_key = bytes.fromhex(key_hex)
-        candidate_key = hashlib.pbkdf2_hmac("sha256", plain_password.encode("utf-8"), salt.encode("utf-8"), 100000)
-        return hmac.compare_digest(candidate_key, expected_key)
+        if stored_hash.startswith("scrypt$"):
+            _scheme, n_s, r_s, p_s, salt_hex, key_hex = stored_hash.split("$", 5)
+            expected_key = bytes.fromhex(key_hex)
+            candidate_key = hashlib.scrypt(
+                plain_password.encode("utf-8"),
+                salt=bytes.fromhex(salt_hex),
+                n=int(n_s), r=int(r_s), p=int(p_s),
+                dklen=len(expected_key),
+            )
+            return hmac.compare_digest(candidate_key, expected_key)
+        if _is_legacy_pbkdf2(stored_hash):
+            salt, key_hex = stored_hash.split("$", 1)
+            expected_key = bytes.fromhex(key_hex)
+            candidate_key = hashlib.pbkdf2_hmac("sha256", plain_password.encode("utf-8"),
+                                                salt.encode("utf-8"), 100000)
+            return hmac.compare_digest(candidate_key, expected_key)
+        return False
     except Exception:
         return False
+
+
+def needs_rehash(stored_hash: str) -> bool:
+    """True when the stored hash predates the current scrypt parameters."""
+    return not stored_hash.startswith(f"scrypt${_SCRYPT_N}${_SCRYPT_R}${_SCRYPT_P}$")
+
+
+# ── Layer 3 — Server-side password policy ─────────────────────────────────
+PASSWORD_POLICY_MESSAGE = (
+    "Password must be at least 10 characters and contain an uppercase letter, "
+    "a lowercase letter, and a digit"
+)
+
+
+def validate_password_policy(password: str) -> List[str]:
+    problems: List[str] = []
+    if len(password or "") < settings.password_min_length:
+        problems.append(f"at least {settings.password_min_length} characters")
+    if not re.search(r"[A-Z]", password or ""):
+        problems.append("an uppercase letter")
+    if not re.search(r"[a-z]", password or ""):
+        problems.append("a lowercase letter")
+    if not re.search(r"[0-9]", password or ""):
+        problems.append("a digit")
+    return problems
+
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
@@ -56,7 +118,6 @@ async def get_current_user(
     db: Session = Depends(get_db),
 ) -> AuthenticatedUser:
     if not creds:
-        # In demo mode, provide standard authorized procurement officer if token absent, or require login
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication credentials required")
     payload = decode_access_token(creds.credentials)
     user_id = payload.get("sub")
@@ -66,10 +127,12 @@ async def get_current_user(
         user_id = int(user_id)
     except (TypeError, ValueError):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+    # Role, tenant, and active status are re-derived from the database on EVERY
+    # request — never trusted from JWT claims — so deactivation is instant:
+    # a disabled account loses access on its very next request.
     user = db.query(User).filter(User.id == user_id).first()
     if not user or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User account is unavailable")
-    # Roles and tenant membership are read from the database, never trusted from JWT claims.
     return AuthenticatedUser(user.id, user.username, user.full_name, user.role, user.tenant_id)
 
 def require_roles(*allowed_roles: str):

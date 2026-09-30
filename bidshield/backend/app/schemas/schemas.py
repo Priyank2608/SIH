@@ -2,10 +2,15 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any, Literal
 from pydantic import BaseModel, Field
 
+# ── Layer 7 — strict request schemas ────────────────────────────────────────
+# extra="forbid" rejects unknown fields outright: an unexpected field is often
+# a bug or a probe, so it is never silently dropped.
+
 # Auth
 class LoginRequest(BaseModel):
-    username: str
-    password: str
+    model_config = {"extra": "forbid"}
+    username: str = Field(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9._@-]+$")
+    password: str = Field(min_length=1, max_length=256)
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -38,19 +43,21 @@ class TenderRequirementOut(BaseModel):
     created_at: Optional[datetime] = None
 
 class RequirementUpdate(BaseModel):
-    code: Optional[str] = None
-    name: Optional[str] = None
-    requirement_type: Optional[str] = None
-    description: Optional[str] = None
+    model_config = {"extra": "forbid"}
+    code: Optional[str] = Field(default=None, min_length=1, max_length=50, pattern=r"^[A-Z0-9][A-Z0-9-]*$")
+    name: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    requirement_type: Optional[Literal["MANDATORY", "OPTIONAL", "TECHNICAL", "FINANCIAL"]] = None
+    description: Optional[str] = Field(default=None, min_length=1, max_length=4000)
     structured_rule: Optional[Dict[str, Any]] = None
-    approval_status: Optional[str] = None
-    officer_notes: Optional[str] = None
+    approval_status: Optional[Literal["APPROVED", "PENDING", "REJECTED", "MODIFIED", "DISABLED"]] = None
+    officer_notes: Optional[str] = Field(default=None, max_length=4000)
 
 class RequirementCreate(BaseModel):
-    code: str
-    name: str
-    requirement_type: str = "MANDATORY"
-    description: str
+    model_config = {"extra": "forbid"}
+    code: str = Field(min_length=1, max_length=50, pattern=r"^[A-Z0-9][A-Z0-9-]*$")
+    name: str = Field(min_length=1, max_length=200)
+    requirement_type: Literal["MANDATORY", "OPTIONAL", "TECHNICAL", "FINANCIAL"] = "MANDATORY"
+    description: str = Field(min_length=1, max_length=4000)
     structured_rule: Dict[str, Any] = {}
 
 # Tenders
@@ -75,15 +82,16 @@ class TenderDetailOut(TenderOut):
     bidders: List[Dict[str, Any]] = []
 
 class TenderCreate(BaseModel):
-    tender_ref: str
-    gem_ref: Optional[str] = None
-    title: str
-    department: str
-    category: str
-    description: Optional[str] = None
-    estimated_value_cr: float = 1.0
-    issue_date: str
-    closing_date: str
+    model_config = {"extra": "forbid"}
+    tender_ref: str = Field(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9][A-Za-z0-9/_.:-]*$")
+    gem_ref: Optional[str] = Field(default=None, max_length=100, pattern=r"^[A-Za-z0-9][A-Za-z0-9/_.:-]*$")
+    title: str = Field(min_length=1, max_length=300)
+    department: str = Field(min_length=1, max_length=200)
+    category: str = Field(min_length=1, max_length=100)
+    description: Optional[str] = Field(default=None, max_length=4000)
+    estimated_value_cr: float = Field(default=1.0, ge=0, le=1_000_000)
+    issue_date: str = Field(min_length=8, max_length=10, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    closing_date: str = Field(min_length=8, max_length=10, pattern=r"^\d{4}-\d{2}-\d{2}$")
 
 # Documents
 class BidderDocumentOut(BaseModel):
@@ -173,20 +181,22 @@ class BidderCreate(BaseModel):
     """Officer bid-intake payload: bidder shell + tender enrollment.
 
     Only legal_name and tender_id are required; statutory identifiers may be
-    captured later from OCR'd documents during officer review.
+    captured later from OCR'd documents during officer review. Identifiers use
+    strict regexes; enterprise_type is a fixed whitelist, not free text.
     """
-    tender_id: int
+    model_config = {"extra": "forbid"}
+    tender_id: int = Field(gt=0)
     legal_name: str = Field(min_length=2, max_length=250)
-    trade_name: Optional[str] = None
-    pan: Optional[str] = Field(default=None, max_length=20)
-    gstin: Optional[str] = Field(default=None, max_length=20)
-    cin: Optional[str] = Field(default=None, max_length=30)
-    udyam_number: Optional[str] = Field(default=None, max_length=50)
-    enterprise_type: Optional[str] = Field(default=None, max_length=50)
+    trade_name: Optional[str] = Field(default=None, max_length=250)
+    pan: Optional[str] = Field(default=None, max_length=20, pattern=r"^[A-Z]{5}[0-9]{4}[A-Z]$|^PENDING$")
+    gstin: Optional[str] = Field(default=None, max_length=20, pattern=r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][0-9A-Z]Z[0-9A-Z]$|^PENDING$")
+    cin: Optional[str] = Field(default=None, max_length=30, pattern=r"^[LU][0-9]{5}[A-Z]{2}[0-9]{4}[A-Z]{3}[0-9]{6}$")
+    udyam_number: Optional[str] = Field(default=None, max_length=50, pattern=r"^UDYAM-[A-Z]{2}-\d{2}-\d{7}$")
+    enterprise_type: Optional[Literal["Micro", "Small", "Medium", "Large", "Unknown"]] = None
     is_startup: Optional[bool] = False
-    address: Optional[str] = None
-    state: Optional[str] = None
-    district: Optional[str] = None
+    address: Optional[str] = Field(default=None, max_length=2000)
+    state: Optional[str] = Field(default=None, max_length=100)
+    district: Optional[str] = Field(default=None, max_length=100)
     contact_email: Optional[str] = Field(default=None, max_length=150)
     contact_phone: Optional[str] = Field(default=None, max_length=50)
     contact_person: Optional[str] = Field(default=None, max_length=150)
@@ -261,6 +271,7 @@ class BidderDetailOut(BidderOut):
 
 # Officer Decision
 class OfficerDecisionRequest(BaseModel):
+    model_config = {"extra": "forbid"}
     decision: Literal["ACCEPTED", "REJECTED", "MANUAL_REVIEW_REQUESTED"] = Field(..., description="Formal decision entered by the authorized Procurement Officer")
     decision_notes: str = Field(..., min_length=1, max_length=4000)
 

@@ -32,7 +32,7 @@ def create_quick_list_report(
     db: Session = Depends(get_db),
     user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER"))
 ):
-    get_tenant_tender(db, payload.tender_id, user.tenant_id)
+    get_tenant_tender(db, payload.tender_id, user.tenant_id, user=user)
     officer = db.query(User).filter(User.id == user.id, User.tenant_id == user.tenant_id).first()
     if not officer or not officer.signature_data:
         raise HTTPException(status_code=409, detail="Officer signature is not configured")
@@ -49,8 +49,8 @@ def create_detailed_assessment_report(
     db: Session = Depends(get_db),
     user: AuthenticatedUser = Depends(require_roles("PROCUREMENT_OFFICER"))
 ):
-    get_tenant_tender(db, payload.tender_id, user.tenant_id)
-    get_tenant_bidder(db, payload.bidder_id, user.tenant_id)
+    get_tenant_tender(db, payload.tender_id, user.tenant_id, user=user)
+    get_tenant_bidder(db, payload.bidder_id, user.tenant_id, user=user)
     if not db.query(TenderBidder).filter(TenderBidder.tender_id == payload.tender_id, TenderBidder.bidder_id == payload.bidder_id).first():
         raise HTTPException(status_code=404, detail="Tender-bidder record not found")
     officer = db.query(User).filter(User.id == user.id, User.tenant_id == user.tenant_id).first()

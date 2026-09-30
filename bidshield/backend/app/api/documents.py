@@ -67,7 +67,7 @@ def list_documents(
 
 @router.get("/{id}")
 def get_document_details(id: int, db: Session = Depends(get_db), user: AuthenticatedUser = Depends(get_current_user)):
-    doc = get_tenant_document(db, id, user.tenant_id)
+    doc = get_tenant_document(db, id, user.tenant_id, user=user)
 
     ocr = db.query(OCRResult).filter(OCRResult.document_id == doc.id).first()
     verif = db.query(VerificationResult).filter(VerificationResult.document_id == doc.id).first()
@@ -111,7 +111,7 @@ def get_document_details(id: int, db: Session = Depends(get_db), user: Authentic
 
 @router.get("/{id}/file")
 def stream_document_file(id: int, db: Session = Depends(get_db), user: AuthenticatedUser = Depends(get_current_user)):
-    doc = get_tenant_document(db, id, user.tenant_id)
+    doc = get_tenant_document(db, id, user.tenant_id, user=user)
     if not doc.content_bytes:
         raise HTTPException(status_code=404, detail="Document binary not found")
 
@@ -173,9 +173,9 @@ async def upload_document(
     except Exception:
         raise HTTPException(status_code=400, detail="Uploaded file is not a readable PDF")
 
-    bidder = get_tenant_bidder(db, bidder_id, user.tenant_id)
+    bidder = get_tenant_bidder(db, bidder_id, user.tenant_id, user=user)
     if tender_id is not None:
-        get_tenant_tender(db, tender_id, user.tenant_id)
+        get_tenant_tender(db, tender_id, user.tenant_id, user=user)
 
     file_hash = hashlib.sha256(content).hexdigest()
     doc_type_clean = document_type.strip().upper()

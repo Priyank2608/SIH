@@ -294,6 +294,35 @@ class AuditChainHead(Base):
     last_hash = Column(String(64), nullable=False)
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
 
+class SecurityEvent(Base):
+    """Layer 2 — queryable security detection log (lockouts, violation bursts,
+    injection probes, out-of-scope access). Detection is ALWAYS logged here,
+    independent of whether the event also triggered a vault snapshot."""
+    __tablename__ = "security_events"
+    id = Column(Integer, primary_key=True, index=True)
+    kind = Column(String(50), nullable=False, index=True)       # LOGIN_LOCKOUT, VIOLATION_BURST, INJECTION_PATTERN, SCOPE_VIOLATION
+    source_ip = Column(String(64), default="0.0.0.0", index=True)
+    username = Column(String(100), nullable=True, index=True)   # account-scoped where applicable
+    user_id = Column(Integer, nullable=True)
+    tenant_id = Column(Integer, nullable=True)
+    detail = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=utcnow, index=True)
+
+
+class LoginAttempt(Base):
+    """Layer 2 — per-account failed-login ledger used for lockout decisions.
+    Scope is the USERNAME (never the IP): many legitimate officers may share
+    one office NAT/VPN address, so an IP-wide lockout would deny service to
+    everyone behind that gateway. Per-IP rapid-fire guessing is handled by
+    Layer 1's plain rate limiter instead."""
+    __tablename__ = "login_attempts"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(100), nullable=False, index=True)
+    source_ip = Column(String(64), default="0.0.0.0")
+    successful = Column(Boolean, default=False, index=True)
+    created_at = Column(DateTime, default=utcnow, index=True)
+
+
 class GeneratedReport(Base):
     __tablename__ = "generated_reports"
     id = Column(Integer, primary_key=True, index=True)

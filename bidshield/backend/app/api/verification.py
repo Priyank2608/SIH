@@ -60,7 +60,7 @@ def retry_verification(
     db: Session = Depends(get_db),
     user: AuthenticatedUser = Depends(require_roles("VERIFICATION_OFFICER", "PROCUREMENT_OFFICER"))
 ):
-    get_tenant_document(db, document_id, user.tenant_id)
+    get_tenant_document(db, document_id, user.tenant_id, user=user)
     res = run_verification_for_document(db, document_id, user.id, user.username)
     log_audit_event(
         db,

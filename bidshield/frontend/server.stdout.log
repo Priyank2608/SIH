@@ -1,0 +1,31 @@
+
+> bidshield-web@1.0.0 dev
+> next dev
+
+   ▲ Next.js 15.5.26
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.22:3000
+
+ ✓ Starting...
+ ✓ Ready in 2.1s
+ ○ Compiling / ...
+ ✓ Compiled / in 2.5s (737 modules)
+ GET / 200 in 3590ms
+ ○ Compiling /bidders/[id] ...
+ ✓ Compiled /bidders/[id] in 602ms (746 modules)
+ GET /bidders/1?tender=1 200 in 1420ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 678ms (771 modules)
+ GET /login 200 in 792ms
+ GET / 200 in 41ms
+ GET / 200 in 157ms
+ ○ Compiling /tenders ...
+ ✓ Compiled /tenders in 675ms (784 modules)
+ GET /tenders 200 in 797ms
+ ✓ Compiled /bidders in 260ms (793 modules)
+ GET /bidders 200 in 341ms
+ GET /bidders/4 200 in 58ms
+ GET / 200 in 35ms
+ GET /bidders/5?tender=1 200 in 40ms
+ GET / 200 in 39ms
+ GET / 200 in 31ms
